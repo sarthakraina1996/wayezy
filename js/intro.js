@@ -2,47 +2,53 @@
    INTRO: the Wayezy logo sting (3.4 s, like a streaming service's opening) when the kiosk or the phone app
    opens, and when the admin hub is entered. Loaded at the top of <body>, right after #intro, so it covers the
    page from the first paint while the rest loads underneath.
-   - the film fits the screen: media/intro-landscape.mp4 (16:9) or media/intro-portrait.mp4 (9:16)
+   - drawn by the page (styles.css "Intro"): the wordmark is media/wayezy-mark.png, sharp on any screen and in any
+     shape; only transform, opacity and filter move, so the graphics chip runs it smoothly. The sound is the intro
+     film's, copied out losslessly (media/intro.aac, blender/mp4_audio.py).
    - once per view per page: switching to a view seen already does not replay it; a sign-in always does
-   - sound when the browser allows it (a kiosk started with --autoplay-policy=no-user-gesture-required, or after
-     the sign-in click), otherwise muted
-   - a touch, a click or a key skips it; it gives up quietly if the film cannot start within 4 s
+   - sound when the browser allows it (a kiosk started with --autoplay-policy=no-user-gesture-required, or after the
+     sign-in click); otherwise it plays silently
+   - a touch, a click or a key skips it; reduced motion shows the wordmark still, briefly
+   - Intro.over() resolves when it has finished: the 3D map waits for it, so its start-up work (shaders on the
+     graphics chip) never makes the intro stutter
    ?intro=0 turns it off (the tests and the launch-film recorder use it).
    ============================================================ */
 const Intro=(()=>{
   const qs=new URLSearchParams(location.search);
-  const box=document.getElementById('intro'),vid=box&&box.querySelector('video'),skip=box&&box.querySelector('button');
-  const off=!box||!vid||qs.get('intro')==='0';
-  const seen=new Set();let on=false,timer=0,after=[];
+  const box=document.getElementById('intro'),img=box&&box.querySelector('.iz-logo img'),snd=box&&box.querySelector('audio'),skip=box&&box.querySelector('button');
+  const off=!box||!img||qs.get('intro')==='0';
+  const LEN=3400,CALM=1800;
+  const seen=new Set();let on=false,timer=0,startT=0,after=[],waiters=[];
+  const calm=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
   const firstView=['kiosk','app','admin'].includes(qs.get('view'))?qs.get('view'):(matchMedia('(max-width:700px)').matches?'app':'kiosk');
-  const portrait=()=>innerHeight>innerWidth*1.05;
-  function finish(){if(!on)return;on=false;clearTimeout(timer);
+  /* the light streaks over the wordmark: thin lines in the logo's colours, a little apart in height and timing */
+  if(box){const st=box.querySelector('.iz-streaks'),C=['#19C3FF','#2F8BFF','#5B5BFF','#8A3CFF','#C13CF5','#E83CF0','#FF4F9A','#FF6A5C','#FF9A2E','#FFC93C'];
+    if(st&&!st.children.length)for(let i=0;i<14;i++){const e=document.createElement('i'),c=C[i%C.length],h=60+((i*37)%40);
+      e.style.cssText=`left:${(4+i*92/13).toFixed(1)}%;top:${(100-h)/2}%;bottom:${(100-h)/2}%;background:${c};box-shadow:0 0 6px ${c},0 0 14px ${c};--d:${(i*53)%180}ms`;st.appendChild(e);}}
+  function finish(){if(!on)return;on=false;clearTimeout(timer);clearTimeout(startT);
     box.classList.add('out');box.setAttribute('aria-hidden','true');
     document.removeEventListener('keydown',onKey,true);
-    setTimeout(()=>{if(on)return;box.classList.remove('show','out','playing');try{vid.pause();vid.removeAttribute('src');vid.load();}catch(e){}},520);
-    const fns=after;after=[];fns.forEach(f=>{try{f();}catch(e){console.error(e);}});}
+    setTimeout(()=>{if(on)return;box.classList.remove('show','run','out','calm');try{snd&&snd.pause();}catch(e){}},520);
+    const fns=after;after=[];fns.forEach(f=>{try{f();}catch(e){console.error(e);}});
+    const ws=waiters;waiters=[];ws.forEach(r=>r());}
   function onKey(e){e.preventDefault();e.stopPropagation();finish();}
   /* play now (kind: 'kiosk', 'app' or 'admin'); returns false when it was not played */
   function play(kind,again){
     if(off||on||(!again&&seen.has(kind)))return false;seen.add(kind);on=true;
-    vid.src='media/intro-'+(portrait()?'portrait':'landscape')+'.mp4';
-    box.classList.remove('out','playing');box.classList.add('show');box.setAttribute('aria-hidden','false');
+    const still=calm();
+    box.classList.remove('out','run','calm');if(still)box.classList.add('calm');
+    box.classList.add('show');box.setAttribute('aria-hidden','false');
     document.addEventListener('keydown',onKey,true);
-    vid.muted=false;vid.volume=.9;
-    /* the page may be busy loading under it, so every timer here checks the film itself, not the clock */
-    const started=()=>{if(!on)return;box.classList.add('playing');clearTimeout(timer);
-      const left=(isFinite(vid.duration)&&vid.duration?vid.duration:3.4)-(vid.currentTime||0);
-      timer=setTimeout(()=>{if(on&&!vid.paused&&!vid.ended&&vid.currentTime<(vid.duration||9))started();else finish();},Math.max(0,left)*1000+1500);};
-    const muted=()=>{if(!on)return;vid.muted=true;const q=vid.play();if(q&&q.then)q.then(started).catch(finish);else started();};
-    /* a machine with no sound device can hold a film with sound at its first frame: then it plays muted */
-    const stuck=()=>setTimeout(()=>{if(on&&!vid.muted&&vid.currentTime===0){vid.pause();try{vid.currentTime=0;}catch(e){}muted();}},900);
-    const go=()=>{const p=vid.play();
-      if(p&&p.then)p.then(()=>{started();stuck();}).catch(muted);else started();};   // no sound allowed yet: play it muted
-    timer=setTimeout(()=>{if(vid.currentTime>0&&!vid.paused)started();else finish();},4000);   // could not start (a slow network): show the page
-    go();
+    let started=false;
+    const go=()=>{if(started||!on)return;started=true;clearTimeout(startT);
+      void box.offsetWidth;box.classList.add('run');                          // (re)starts the animations from their first frame
+      if(snd&&!still){try{snd.currentTime=0;snd.muted=false;snd.volume=.9;const p=snd.play();if(p&&p.catch)p.catch(()=>{});}catch(e){}}   // no sound allowed yet: silent
+      timer=setTimeout(finish,still?CALM:LEN);};
+    /* the wordmark has to be there before it is shown; a slow network gets 1.5 s, then it starts anyway */
+    if(img.complete&&img.naturalWidth)go();
+    else{img.addEventListener('load',go,{once:true});img.addEventListener('error',go,{once:true});startT=setTimeout(go,1500);}
     return true;}
   if(!off){
-    vid.addEventListener('ended',finish);vid.addEventListener('error',finish);
     box.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();finish();});   // skip; not a touch on the kiosk
     box.addEventListener('click',e=>e.stopPropagation());
     if(skip)skip.addEventListener('click',e=>{e.stopPropagation();finish();});
@@ -54,7 +60,6 @@ const Intro=(()=>{
   return {play,get on(){return on;},
     /* run fn once the intro is over (now if none is playing) */
     then(fn){if(on)after.push(fn);else fn();},
-    /* resolves once the film is visibly under way (or there is none): heavy start-up work waits for it, so the
-       film starts smoothly and the page builds behind it */
-    rolling(){return new Promise(res=>{const t0=Date.now();const chk=()=>{if(!on||vid.currentTime>=.3||Date.now()-t0>2500)res();else setTimeout(chk,80);};chk();});}};
+    /* resolves when the intro has finished (at once when there is none) */
+    over(){return on?new Promise(r=>waiters.push(r)):Promise.resolve();}};
 })();

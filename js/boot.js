@@ -12,4 +12,4 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)&&QS.get('sw
     navigator.serviceWorker.ready.then(r=>{const page=location.href.split('#')[0];   // what this visit loaded, for the worker to keep
       if(r.active)r.active.postMessage({page,keep:[page,...performance.getEntriesByType('resource').map(x=>x.name)]});}).catch(()=>{});});
 /* the kiosk opens on its idle screen: the ads and the film, with English / हिन्दी to start in */
-if(VIEW==='kiosk'&&QS.get('attract')!=='0'&&!QS.get('lang')&&!isBrand(QS.get('to')))startAttract();
+if(VIEW==='kiosk'&&QS.get('attract')!=='0'&&!QS.get('lang')&&!isBrand(QS.get('to')))Intro.then(()=>{if(!ATTRACT.on&&!state.brand)startAttract();});   // after the intro: its film and ads don't compete with it

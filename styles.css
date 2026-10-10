@@ -840,15 +840,61 @@ td.m-who{min-width:170px}
 /* a wide admin table scrolls sideways inside its panel; numbers stay on one line */
 .tscroll{overflow-x:auto;margin:0 -4px;padding:0 4px}.tscroll td{white-space:nowrap}.tscroll td.m-who{white-space:normal}
 
-/* ---------- Intro (js/intro.js): the Wayezy sting over everything, from the first paint ---------- */
-#intro{position:fixed;inset:0;z-index:10000;background:#01050F;display:none;opacity:1;transition:opacity .5s cubic-bezier(.4,0,.2,1)}
+/* ---------- Intro (js/intro.js): the Wayezy sting, drawn by the page itself so the logo is as sharp as the artwork
+   (media/wayezy-mark.png) on any screen; the sound is the intro film's (media/intro.aac). 3.4 s, timed like the film:
+   glow, light streaks and the wordmark (0.3-0.8 s), the line (1.0 s), a dive into the letters (2.4 s), white (3.0 s).
+   Only transform, opacity and filter move, so the graphics chip draws it while the page loads underneath.
+   The glow and the streaks' light are the brand film's look, like the gradients in the logo artwork itself. ---------- */
+#intro{position:fixed;inset:0;z-index:10000;background:#01050F;display:none;opacity:1;overflow:hidden;transition:opacity .5s cubic-bezier(.4,0,.2,1);
+  --iz:3.4s;--logo:min(60vw,900px)}
+@media (orientation:portrait){#intro{--logo:min(80vw,620px)}}
 #intro.show{display:block}
 #intro.out{opacity:0;pointer-events:none}
-#intro video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}   /* its first frame is the box's colour */
+#intro audio{display:none}
+#intro>div{position:absolute;pointer-events:none}
+.iz-glow{left:50%;top:50%;width:calc(var(--logo)*1.9);height:calc(var(--logo)*.95);margin:calc(var(--logo)*-.475) 0 0 calc(var(--logo)*-.95);
+  background:radial-gradient(closest-side,rgba(44,54,150,.6),rgba(26,32,104,.25) 55%,rgba(1,5,15,0) 100%);opacity:0}
+.iz-streaks{left:50%;top:50%;width:calc(var(--logo)*1.05);height:calc(var(--logo)*.62);margin:calc(var(--logo)*-.31) 0 0 calc(var(--logo)*-.525)}
+.iz-streaks i{position:absolute;top:0;bottom:0;width:2px;border-radius:2px;opacity:0;transform-origin:50% 50%}
+.iz-bars{inset:0}
+.iz-bars i{position:absolute;top:-5%;bottom:-5%;width:4.6vw;border-radius:2vw;opacity:0}
+.iz-bars i:nth-child(1){left:20%;background:rgba(25,195,255,.26);--dx:-9vw}
+.iz-bars i:nth-child(2){left:39%;background:rgba(138,60,255,.3);--dx:-3vw}
+.iz-bars i:nth-child(3){left:57%;background:rgba(232,60,240,.26);--dx:4vw}
+.iz-bars i:nth-child(4){left:75%;background:rgba(255,96,110,.24);--dx:10vw}
+.iz-logo{left:50%;top:50%;width:var(--logo);margin-left:calc(var(--logo)*-.5);transform:translateY(-50%);text-align:center}
+.iz-logo img{display:block;width:100%;height:auto;opacity:0;transform-origin:57% 50%;will-change:transform,opacity,filter}
+.iz-tag{display:block;margin-top:calc(var(--logo)*.055);font:600 calc(var(--logo)*.031)/1 var(--sans);letter-spacing:.42em;text-transform:uppercase;color:#F2786F;opacity:0;padding-left:.42em}
+.iz-tag b{color:#F7B27A;font-weight:600;margin:0 .35em}
+.iz-white{inset:0;background:#fff;opacity:0}
+#intro.run .iz-glow{animation:izGlow var(--iz) linear both}
+#intro.run .iz-streaks i{animation:izStreak var(--iz) linear both;animation-delay:var(--d,0ms)}
+#intro.run .iz-bars i{animation:izBars var(--iz) linear both}
+#intro.run .iz-logo img{animation:izLogo var(--iz) linear both}
+#intro.run .iz-tag{animation:izTag var(--iz) linear both}
+#intro.run .iz-white{animation:izWhite var(--iz) linear both}
+@keyframes izGlow{0%{opacity:0;transform:scale(.75)}10%{opacity:.85}60%{opacity:1;transform:scale(1)}72%{opacity:.8;transform:scale(1.25)}86%{opacity:0;transform:scale(1.9)}100%{opacity:0}}
+@keyframes izStreak{0%,10%{opacity:0;transform:scaleY(.15)}17%{opacity:.5;transform:scaleY(1)}24%{opacity:.22;transform:scaleY(1.05)}30%,100%{opacity:0;transform:scaleY(1.1)}}
+@keyframes izLogo{
+  0%,9%{opacity:0;transform:scale(1.07);filter:blur(16px) brightness(1.7) drop-shadow(0 0 0 rgba(150,90,255,0))}
+  22%{opacity:1;transform:scale(1);filter:blur(0) brightness(1.18) drop-shadow(0 0 calc(var(--logo)*.03) rgba(150,90,255,.55))}
+  32%{filter:blur(0) brightness(1.06) drop-shadow(0 0 calc(var(--logo)*.022) rgba(150,90,255,.38))}
+  64%{opacity:1;transform:scale(1.03);filter:blur(0) brightness(1.06) drop-shadow(0 0 calc(var(--logo)*.022) rgba(150,90,255,.38));animation-timing-function:cubic-bezier(.45,0,.75,.6)}
+  71%{opacity:1;transform:scale(1.65);filter:blur(0) brightness(1.05) drop-shadow(0 0 calc(var(--logo)*.015) rgba(150,90,255,.3))}
+  77%{opacity:1;transform:scale(4.6);filter:blur(.5px) brightness(1.15) drop-shadow(0 0 0 rgba(150,90,255,0))}
+  83%{opacity:.85;transform:scale(8.5);filter:blur(1.5px) brightness(1.35) drop-shadow(0 0 0 rgba(150,90,255,0))}
+  88%,100%{opacity:0;transform:scale(10);filter:blur(2px) brightness(1.5) drop-shadow(0 0 0 rgba(150,90,255,0))}}
+@keyframes izTag{0%,28%{opacity:0;transform:translateY(calc(var(--logo)*.012));letter-spacing:.62em}38%{opacity:1;transform:none;letter-spacing:.42em}59%{opacity:1}67%,100%{opacity:0;letter-spacing:.42em}}
+@keyframes izBars{0%,65%{opacity:0;transform:translateX(0) scaleX(.5)}70%{opacity:1}83%{opacity:.8;transform:translateX(var(--dx)) scaleX(1.7)}88%,100%{opacity:0;transform:translateX(var(--dx)) scaleX(1.9)}}
+@keyframes izWhite{0%,74%{opacity:0;animation-timing-function:cubic-bezier(.5,0,.9,.5)}87%,100%{opacity:1}}
+/* reduced motion: the wordmark and its line, still, for a moment */
+#intro.calm .iz-logo img,#intro.calm .iz-tag{opacity:1;animation:none!important}
+#intro.calm .iz-glow{opacity:.85;animation:none!important}
+#intro.calm .iz-streaks,#intro.calm .iz-bars,#intro.calm .iz-white{display:none}
 #intro button{position:absolute;right:max(20px,env(safe-area-inset-right,0px));bottom:max(22px,calc(env(safe-area-inset-bottom,0px) + 12px));
   border:0;border-radius:999px;padding:9px 18px;background:rgba(255,255,255,.14);color:#fff;font:500 13px var(--sans);letter-spacing:.04em;
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .4s .9s,background .25s}
-#intro.playing button{opacity:1}
+#intro.run button{opacity:1}
 #intro button:hover{background:rgba(255,255,255,.26)}
 
 /* ---------- Motion: selections glide (js/motion.js), hovers and presses ease ---------- */

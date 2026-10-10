@@ -99,6 +99,6 @@ function startMap(){
     if(state.route)drawRoute(state.route);applyHighlights();setFloor(cur,false);fitFloor(0);
     if(e)toast(T('Showing the 2D map on this screen'));};
   if(QS.get('map')==='2d'){fallback(null);return;}
-  ensureThree().then(()=>typeof Intro!=='undefined'?Intro.rolling():0).then(()=>{try{MAPR=createMap3D(ready,fallback);}catch(e){fallback(e);}},fallback);   // the 3D build waits for the intro to be rolling
+  ensureThree().then(()=>typeof Intro!=='undefined'?Intro.over():0).then(()=>{try{MAPR=createMap3D(ready,fallback);}catch(e){fallback(e);}},fallback);   // the 3D build (shaders on the graphics chip) waits for the intro to end, so the intro never stutters
 }
 updateFloorUI();
