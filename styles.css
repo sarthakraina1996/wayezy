@@ -990,3 +990,9 @@ body.view-app .olock~em,body.view-app .ocard .oimg:has(.olock) em{opacity:0}
 body.view-app .ocard b{font-size:16.5px}
 body.view-app .p-page h2{letter-spacing:-.015em}
 body.view-app .ocard .oimg:has(.olock) .thumb-logo{opacity:0}
+
+/* ---------- Rounded solid icons (Nov): the phone's chips and tab bar (assets.js ICS) ---------- */
+body.view-app .p-chips svg{width:18px;height:18px;color:var(--gold)}
+body.view-app .p-chips button[aria-pressed="true"] svg{color:#fff}
+body.view-app .p-tabs button svg{width:23px;height:23px;color:#5A6075}
+body.view-app .p-tabs button[aria-pressed="true"] svg{color:#F9D5D2}
