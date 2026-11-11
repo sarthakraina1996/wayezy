@@ -8,16 +8,18 @@
    - their language and step-free choice, remembered on any phone they sign in on
    - find my car: where they parked in the basement (level and pillar or bay), saved by hand or by scanning the QR code
      on a pillar (?park=B1-P23), and a route back to it: to a lift that goes down to parking, then the pillar
-   The kiosk is never signed in. Without the live server (the one-file build) there is no membership, and the
-   Account tab keeps only the settings.
+   The kiosk is never signed in. Without the live server (the GitHub Pages copy, the one-file build, a Claude page)
+   membership runs as a demo on the phone itself (DemoMembers below): the same screens, the code shown on screen,
+   the member kept in this browser only.
    ============================================================ */
 const Member={me:null,booted:false,pollT:null,
   /* is a member signed in on this phone? (only ever true in the phone app) */
   get on(){return !!this.me&&VIEW==='app';},
-  get can(){return DBKIND==='server';},
+  get can(){return DBKIND!=='none';},                      // with the server, or as the on-phone demo
   get token(){try{return localStorage.getItem('ireo.member')||'';}catch(e){return '';}},
   set token(v){try{if(v)localStorage.setItem('ireo.member',v);else localStorage.removeItem('ireo.member');}catch(e){}},
-  async call(path,method,body){const h={};if(body)h['Content-Type']='application/json';if(this.token)h.Authorization='Bearer '+this.token;
+  async call(path,method,body){if(DBKIND!=='server')return DemoMembers.call(path,method,body);
+    const h={};if(body)h['Content-Type']='application/json';if(this.token)h.Authorization='Bearer '+this.token;
     let r;try{r=await fetch('api/member/'+path,{method:method||'GET',headers:h,body:body?JSON.stringify(body):undefined,cache:'no-store'});}
     catch(e){throw Object.assign(new Error(T('No connection. Check the internet and try again.')),{status:0});}
     let j=null;try{j=await r.json();}catch(e){}
@@ -40,6 +42,37 @@ const Member={me:null,booted:false,pollT:null,
   prefs(){if(this.me)this.save({prefs:{lang:LANG,stepFree:!!state.stepFree}});},
   async signOut(){try{await this.call('logout','POST');}catch(e){}this.token='';this.me=null;clearInterval(this.pollT);memberChanged();toast(T('You are signed out'));}
 };
+/* membership without a server: the server's /api/member/* answered on this phone, from localStorage. Same shapes as
+   server.js (start -> a code, verify -> token + member, me GET/PUT, logout); the code is always shown (demo). */
+const DemoMembers={K:'wz.demoMembers',
+  db(){try{const d=JSON.parse(localStorage.getItem(this.K)||'null');if(d&&d.members)return d;}catch(e){}return {members:{},sessions:{},codes:{}};},
+  put(d){try{localStorage.setItem(this.K,JSON.stringify(d));}catch(e){}},
+  fail(msg,status){throw Object.assign(new Error(T(msg)),{status});},
+  rand(n){let s='';const a=new Uint32Array(n);(window.crypto||{}).getRandomValues?crypto.getRandomValues(a):a.forEach((_,i)=>a[i]=Math.random()*1e9);a.forEach(x=>s+=x%10);return s;},
+  view(m){return {id:m.id,name:m.name||'',phone:m.phone.replace(/^(\+91)(\d{2})\d{5}(\d{3})$/,'$1 $2•••••$3'),joined:m.joined,points:m.points||0,
+    favs:m.favs||[],prefs:m.prefs||{},car:m.car||null,log:(m.log||[]).slice(-10).reverse()};},
+  async call(path,method,body){const d=this.db();method=method||'GET';body=body||{};
+    const phone=(()=>{const x=String(body.phone||'').replace(/\D/g,'').slice(-10);return /^[6-9]\d{9}$/.test(x)?'+91'+x:'';})();
+    if(path==='start'){if(!phone)this.fail('Enter a 10-digit mobile number.',400);
+      const code=this.rand(6);d.codes[phone]=code;this.put(d);return {ok:true,demo:true,code};}
+    if(path==='verify'){const given=String(body.code||'').replace(/\D/g,'');
+      if(!phone||!d.codes[phone])this.fail('That code has expired. Ask for a new one.',400);
+      if(given!==d.codes[phone])this.fail('That code is not right.',401);
+      delete d.codes[phone];let m=Object.values(d.members).find(x=>x.phone===phone);const isNew=!m;
+      if(!m){let id;do{id=String(1+Number(this.rand(1))%9)+this.rand(9);}while(d.members[id]);m=d.members[id]={id,phone,name:'',joined:new Date().toISOString(),points:0,favs:[],prefs:{},log:[]};}
+      const token=this.rand(32);d.sessions[token]=m.id;this.put(d);return {ok:true,token,isNew,member:this.view(m)};}
+    const m=d.members[d.sessions[Member.token]];if(!m)this.fail('Please sign in again.',401);
+    if(path==='logout'){delete d.sessions[Member.token];this.put(d);return {ok:true};}
+    if(path==='me'&&method==='PUT'){const clean=(v,n)=>String(v==null?'':v).replace(/[\u0000-\u001f\u007f<>]/g,'').trim().slice(0,n);
+      if('name' in body)m.name=clean(body.name,40);
+      if(Array.isArray(body.favs))m.favs=[...new Set(body.favs.filter(f=>typeof f==='string'&&isBrand(f)))].slice(0,100);
+      if(body.prefs&&typeof body.prefs==='object')m.prefs={lang:body.prefs.lang==='hi'?'hi':'en',stepFree:!!body.prefs.stepFree};
+      if(body.car===null)delete m.car;
+      else if(body.car&&typeof body.car==='object'){const level=String(body.car.level||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4),spot=clean(body.car.spot,16);
+        if(!level||!spot)this.fail('Choose the level and enter the pillar or bay number.',400);
+        m.car={level,spot,note:clean(body.car.note,60),at:new Date().toISOString()};}
+      this.put(d);}
+    return {ok:true,member:this.view(m)};}};
 /* a member's offers are unlocked for them; for everyone else (and on the kiosk) they are a locked teaser */
 const offerLocked=o=>!!(o&&o.members)&&!Member.on;
 const offerTitle=o=>offerLocked(o)?T('Members-only offer'):tc(o.title);
