@@ -7,7 +7,7 @@ let VIEW=['kiosk','app','admin'].includes(QS.get('view'))?QS.get('view'):(matchM
 if(QS.get('lock')==='1')document.body.classList.add('lock');
 ['kLogo','pLogo','sLogo'].forEach(id=>{const i=document.getElementById(id);if(i)i.src=LOGO_G;});document.getElementById('aLogo').src=LOGO_W;   // colour on the white bars, white on the idle screen
 
-const GROUPS={fashion:{name:'Fashion',cats:['fashion','access'],icon:'bag'},dining:{name:'Dining',cats:['food'],icon:'fork'},home:{name:'Home Decor',cats:['home'],icon:'sofa'},
+const GROUPS={fashion:{name:'Fashion',cats:['fashion','access'],icon:'hanger'},dining:{name:'Dining',cats:['food'],icon:'fork'},home:{name:'Home Decor',cats:['home'],icon:'sofa'},
   beauty:{name:'Beauty & Wellness',short:'Beauty',cats:['beauty'],icon:'lotus'},more:{name:'More',cats:['other','cinema'],icon:'more'}};
 function catMatch(c){const g=GROUPS[state.cat];return g?g.cats.includes(c):c===state.cat;}
 function groupOf(b){const c=BRANDS[b].cat;for(const k in GROUPS)if(GROUPS[k].cats.includes(c))return k;return 'more';}
@@ -134,16 +134,16 @@ let OFFTAB='all';                                         // the phone's Offers 
 const PCHIPS=[['all','All','store'],['fashion','Fashion','hanger'],['dining','Dining','fork'],['home','Home Decor','sofa'],['beauty','Beauty','lotus'],['more','More','more']];
 function renderQuick(){
   const kc=document.getElementById('kCats');
-  patchHTML(kc,Object.entries(GROUPS).map(([k,g])=>`<button class="k-cat" data-g="${k}" aria-pressed="${state.cat===k}"><i>${IC[g.icon]}</i>${T(g.short||g.name)}</button>`).join(''));
+  patchHTML(kc,Object.entries(GROUPS).map(([k,g])=>`<button class="k-cat" data-g="${k}" aria-pressed="${state.cat===k}"><i>${icn(g.icon)}</i>${T(g.short||g.name)}</button>`).join(''));
   kc.querySelectorAll('button').forEach(b=>b.onclick=()=>{poke();KTAB='map';setGroup(b.dataset.g,false,()=>swapIn(document.getElementById('kBody')));});
   const kt=document.getElementById('kTabs');
-  patchHTML(kt,KTABS.map(([k,t,i])=>`<button data-t="${k}" aria-pressed="${KTAB===k&&!state.cat}">${IC[i]}${T(t)}</button>`).join(''));
+  patchHTML(kt,KTABS.map(([k,t,i])=>`<button data-t="${k}" aria-pressed="${KTAB===k&&!state.cat}">${icn(i)}${T(t)}</button>`).join(''));
   kt.querySelectorAll('button').forEach(b=>b.onclick=()=>{poke();setKTab(b.dataset.t);});
   const pc=document.getElementById('pChips');
-  patchHTML(pc,PCHIPS.map(([k,t,i])=>`<button data-c="${k}" aria-pressed="${(k==='all'&&!state.cat)||state.cat===k}">${ICS[i]||IC[i]}<span>${T(t)}</span></button>`).join(''));
+  patchHTML(pc,PCHIPS.map(([k,t,i])=>`<button data-c="${k}" aria-pressed="${(k==='all'&&!state.cat)||state.cat===k}">${icn(i)}<span>${T(t)}</span></button>`).join(''));
   pc.querySelectorAll('button').forEach(b=>b.onclick=()=>{const k=b.dataset.c;PTAB='home';setGroup(k==='all'?null:k,k!=='all',()=>{document.getElementById('pScroll').scrollTop=0;swapIn(document.getElementById('pList'));});});
   const pt=document.getElementById('pTabs');
-  patchHTML(pt,PTABS.map(([k,t,i])=>`<button data-t="${k}" aria-pressed="${PTAB===k}"><i>${k==='me'&&typeof Member!=='undefined'&&Member.on?`<b class="avatar">${escapeHtml((firstName()||'M')[0].toUpperCase())}</b>`:ICS[i]||IC[i]}</i><span>${T(t)}</span></button>`).join(''));
+  patchHTML(pt,PTABS.map(([k,t,i])=>`<button data-t="${k}" aria-pressed="${PTAB===k}"><i>${k==='me'&&typeof Member!=='undefined'&&Member.on?`<b class="avatar">${escapeHtml((firstName()||'M')[0].toUpperCase())}</b>`:icn(i)}</i><span>${T(t)}</span></button>`).join(''));
   document.getElementById('app').dataset.tab=PTAB;
   pt.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(typeof RM!=='undefined'&&RM.on)exitRouteMode(false);PTAB=b.dataset.t;if(PTAB!=='home')state.cat=null;if(PTAB!=='home'&&PTAB!=='map'){clearSelection();state.query='';pqEl.value='';}renderQuick();
     afterPaint(()=>{if(PTAB!=='home'&&PTAB!=='map')applyHighlights();setMapFull(PTAB==='map');renderPanels();document.getElementById('pScroll').scrollTop=0;swapIn(document.getElementById('pList'));});});
@@ -179,9 +179,9 @@ function allOffers(){const o=[];brandKeys().forEach(b=>liveOffers(b).forEach(x=>
 function shortDate(d){const t=new Date(d+'T00:00');return isNaN(t)?'':t.toLocaleDateString(locale(),{day:'numeric',month:'short'});}
 function promoHTML(a){const b=isBrand(a.brand)?a.brand:'';return `<div class="promo${b&&PHOTOS[b]?' promo-ph ph-'+b:''}"${b?` data-b="${b}" role="button" tabindex="0"`:''}><small>${escapeHtml(tc(a.kicker)||T('Featured'))}</small><b>${escapeHtml(tc(a.headline)||'')}</b><span>${escapeHtml(tc(a.sub)||'')}${b?' · '+escapeHtml(BRANDS[b].name):''}</span></div>`;}
 function servicesHTML(){return `${mallHours()?`<p class="note">${T('Mall hours: ')}<b>${escapeHtml(mallHours())}</b></p>`:''}<div class="svc">
-  <button data-act="wc">${IC.wc}${T('Toilets')}</button><button data-act="lift">${IC.lift}${T('Lifts')}</button>
-  <button data-act="exit">${IC.exit}${T('Exit')}</button><button data-act="stepfree" aria-pressed="${state.stepFree}">${IC.access}${T('Step-free route')}</button>
-  <button data-act="help">${IC.phone}${T('Help desk')}</button><button data-act="mode">${IC.clock}${T(MODE==='day'?'Evening view':'Day view')}</button>
+  <button data-act="wc">${icn('wc')}${T('Toilets')}</button><button data-act="lift">${icn('lift')}${T('Lifts')}</button>
+  <button data-act="exit">${icn('exit')}${T('Exit')}</button><button data-act="stepfree" aria-pressed="${state.stepFree}">${icn('access')}${T('Step-free route')}</button>
+  <button data-act="help">${icn('phone')}${T('Help desk')}</button><button data-act="mode">${icn('clock')}${T(MODE==='day'?'Evening view':'Day view')}</button>
   <button data-act="lang" lang="${LANG==='hi'?'en':'hi'}">${IC.lang}${LANG==='hi'?'English':'हिन्दी'}</button></div>`;}
 /* an empty list says what is missing, why, and offers somewhere useful to go instead */
 function emptyHTML(icon,title,text,act,actText){return `<div class="empty-state"><i>${IC[icon]||''}</i><b>${title}</b>${text?`<span>${text}</span>`:''}${act?`<button class="btn sm" data-act="${act}">${actText}</button>`:''}</div>`;}
@@ -206,7 +206,7 @@ function greetHTML(){const h=new Date().getHours();const g=T(h<12?'Good morning'
   return `<div class="greet${mem?' mem':''}"><div><small>${g}${mem&&firstName()?', '+escapeHtml(firstName()):''}</small><b>${T(mem?'Good to see you at {venue}':'Welcome to {venue}',{venue:venueName()})}</b><span>${mallHours()?T('Open today {hours}',{hours:escapeHtml(mallHours())})+' · ':''}${nowait?T(nowait>1?'{n} restaurants with no wait':'{n} restaurant with no wait',{n:nowait}):''}${offers?(nowait?' · ':'')+T(offers>1?'{n} offers live':'{n} offer live',{n:offers}):''}</span></div>
     ${mem?`<button class="greet-pts" data-act="account"><b>${(Member.me.points||0).toLocaleString(locale())}</b><span>${T('Points')}</span></button>`:join?`<button class="greet-join" data-act="signin">${T('Join')}</button>`:''}</div>
     ${mem&&Member.me.car?`<button class="greet-car" data-act="findcar"><i>${IC.car}</i><span><small>${T('Your car')}</small><b>${escapeHtml(Member.me.car.level)} · ${escapeHtml(Member.me.car.spot)}</b></span><em>${T('Find my car')}${IC.chev}</em></button>`:''}
-    <div class="quick${mem?' five':''}">${[['wc','wc','Toilets'],['lift','lift','Lifts'],['exit','exit','Exit'],...(mem?[['car','car','My car']]:[]),['help','phone','Help']].map(([a,i,t])=>`<button data-act="${a}"><i>${IC[i]}</i><span>${T(t)}</span></button>`).join('')}</div>`;}
+    <div class="quick${mem?' five':''}">${[['wc','wc','Toilets'],['lift','lift','Lifts'],['exit','exit','Exit'],...(mem?[['car','car','My car']]:[]),['help','phone','Help']].map(([a,i,t])=>`<button data-act="${a}"><i>${icn(i)}</i><span>${T(t)}</span></button>`).join('')}</div>`;}
 function favRowHTML(){if(typeof Member==='undefined'||!Member.on)return '';const favs=(Member.me.favs||[]).filter(isBrand);if(!favs.length)return '';
   return `<div class="sec-title"><h3>${T('Your stores')}</h3><button data-act="account">${T('See all')}</button></div><div class="hscroll favrow">${favs.slice(0,10).map(b=>`<button class="favchip" data-b="${b}">${thumbHTML(b)}<span>${escapeHtml(BRANDS[b].name)}</span></button>`).join('')}</div>`;}
 /* ---------------- store card ---------------- */

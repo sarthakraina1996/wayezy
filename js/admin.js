@@ -62,7 +62,7 @@ function renderAdmin(){
   const nav=adminNav();if(!nav.some(n=>n[0]===ASEC))ASEC='overview';
   const pend=pendingCount(),adp=adPendingCount();
   el.innerHTML=`<aside class="a-side"><img src="${LOGO_G}" alt="Wayezy"><div class="sub">${isPortal()?'STORE PORTAL':'ADMIN HUB'}</div>
-    ${nav.map(([k,t,i])=>`<button data-sec="${k}" aria-pressed="${ASEC===k}">${IC[i]}${t}${k==='offers'&&pend&&can('mall.approve')?`<span class="n">${pend}</span>`:''}${k==='ads'&&adp?`<span class="n">${adp}</span>`:''}</button>`).join('')}
+    ${nav.map(([k,t,i])=>`<button data-sec="${k}" aria-pressed="${ASEC===k}">${icn(i)}${t}${k==='offers'&&pend&&can('mall.approve')?`<span class="n">${pend}</span>`:''}${k==='ads'&&adp?`<span class="n">${adp}</span>`:''}</button>`).join('')}
     <div class="foot">${{live:'● Live — changes reach every kiosk and phone instantly',offline:'○ Reconnecting to the server…',device:'● Saved on this device — kiosk and app tabs in this browser stay in sync',screen:'○ This browser blocks storage — changes last until the page reloads'}[dbLabel()]||'○ Connecting…'}${DBKIND==='server'&&DB&&DB.auth?' <button class="linkbtn" id="aSignOut">Sign out</button>':''}</div></aside>
     <main class="a-main" id="aMain"><div class="a-top"><h1>${escapeHtml(nav.find(n=>n[0]===ASEC)[1])}</h1>
     <div class="a-user"><span class="chip">${escapeHtml(role.name)}${u.store&&BRANDS[u.store]?' · '+escapeHtml(BRANDS[u.store].name):''}</span><select id="aUserSel" aria-label="Signed in as">${Object.entries(USERS()).map(([id,x])=>`<option value="${id}" ${id===AUSER?'selected':''}>${escapeHtml(x.name)}</option>`).join('')}</select></div></div>
