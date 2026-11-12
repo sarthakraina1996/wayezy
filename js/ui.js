@@ -132,7 +132,7 @@ const KTABS=[['map','Map','map'],['directory','Directory','az'],['offers','Offer
 const PTABS=[['home','Home','home'],['map','Map','map'],['offers','Offers','offer'],['events','Events','cal'],['me','Account','user']];
 let OFFTAB='all';                                         // the phone's Offers tab: everything, or members' offers
 const PCHIPS=[['all','All','store'],['fashion','Fashion','hanger'],['dining','Dining','fork'],['home','Home Decor','sofa'],['beauty','Beauty','lotus'],['more','More','more']];
-function renderQuick(){
+function renderQuick(){applyTheme();{const v=document.getElementById('pVenue');if(v&&v.textContent!==venueName())v.textContent=venueName();}
   const kc=document.getElementById('kCats');
   patchHTML(kc,Object.entries(GROUPS).map(([k,g])=>`<button class="k-cat" data-g="${k}" aria-pressed="${state.cat===k}"><i>${icn(g.icon)}</i>${T(g.short||g.name)}</button>`).join(''));
   kc.querySelectorAll('button').forEach(b=>b.onclick=()=>{poke();KTAB='map';setGroup(b.dataset.g,false,()=>swapIn(document.getElementById('kBody')));});
@@ -143,7 +143,7 @@ function renderQuick(){
   patchHTML(pc,PCHIPS.map(([k,t,i])=>`<button data-c="${k}" aria-pressed="${(k==='all'&&!state.cat)||state.cat===k}">${icn(i)}<span>${T(t)}</span></button>`).join(''));
   pc.querySelectorAll('button').forEach(b=>b.onclick=()=>{const k=b.dataset.c;PTAB='home';setGroup(k==='all'?null:k,k!=='all',()=>{document.getElementById('pScroll').scrollTop=0;swapIn(document.getElementById('pList'));});});
   const pt=document.getElementById('pTabs');
-  patchHTML(pt,PTABS.map(([k,t,i])=>`<button data-t="${k}" aria-pressed="${PTAB===k}"><i>${k==='me'&&typeof Member!=='undefined'&&Member.on?`<b class="avatar">${escapeHtml((firstName()||'M')[0].toUpperCase())}</b>`:icn(i)}</i><span>${T(t)}</span></button>`).join(''));
+  patchHTML(pt,PTABS.map(([k,t,i])=>`<button data-t="${k}" aria-pressed="${PTAB===k}" aria-label="${T(t)}"><i>${k==='me'&&typeof Member!=='undefined'&&Member.on?`<b class="avatar">${escapeHtml((firstName()||'M')[0].toUpperCase())}</b>`:icn(i)}</i><span>${T(t)}</span></button>`).join(''));
   document.getElementById('app').dataset.tab=PTAB;
   pt.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(typeof RM!=='undefined'&&RM.on)exitRouteMode(false);PTAB=b.dataset.t;if(PTAB!=='home')state.cat=null;if(PTAB!=='home'&&PTAB!=='map'){clearSelection();state.query='';pqEl.value='';}renderQuick();
     afterPaint(()=>{if(PTAB!=='home'&&PTAB!=='map')applyHighlights();setMapFull(PTAB==='map');renderPanels();document.getElementById('pScroll').scrollTop=0;swapIn(document.getElementById('pList'));});});

@@ -996,3 +996,81 @@ body.view-app .p-chips svg{width:18px;height:18px;color:var(--gold)}
 body.view-app .p-chips button[aria-pressed="true"] svg{color:#fff}
 body.view-app .p-tabs button svg{width:23px;height:23px;color:#5A6075}
 body.view-app .p-tabs button[aria-pressed="true"] svg{color:#F9D5D2}
+
+/* ---------- Two-tone icons (Nov, assets.js ICT): lines in the text colour, one accent in --ia ---------- */
+svg .a{stroke:var(--ia,var(--gold))}
+svg .af{fill:var(--ia,var(--gold));stroke:none}
+svg .dot,svg .dotb{fill:currentColor;stroke:none}
+svg .hole{fill:var(--ih,#fff);stroke:none}
+body.view-app .p-chips svg{color:var(--green)}
+body.view-app .p-chips button[aria-pressed="true"] svg{color:#fff;--ia:var(--gold2)}
+.k-cat svg{color:var(--green)}
+.k-cat[aria-pressed="true"] svg{color:#fff;--ia:#fff;--ih:var(--gold)}
+.quick button svg{color:var(--green)}
+
+/* ---------- Phone tab bar (Nov): one solid floating capsule, icons only, the selected one in a sliding pill ---------- */
+body.view-app .p-tabs{left:18px;right:18px;bottom:calc(14px + env(safe-area-inset-bottom,0px));height:64px;padding:8px 10px;border-radius:32px;
+  background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 12px 32px rgba(20,25,60,.13),0 2px 6px rgba(20,25,60,.06),0 0 0 1px rgba(20,25,60,.05)}
+body.view-app .p-tabs button{flex:1;min-width:0;min-height:0;height:48px;padding:0;gap:0;display:grid;place-items:center;color:var(--green)}
+body.view-app .p-tabs button span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+body.view-app .p-tabs button i{width:58px;height:46px;border-radius:23px}
+body.view-app .p-tabs button svg{width:25px;height:25px;color:var(--green)}
+body.view-app .p-tabs button[aria-pressed="true"] svg{color:#fff;--ia:var(--gold2);--ih:var(--green)}
+body.view-app #pTabs>.glider{border-radius:23px;background:var(--green);box-shadow:0 6px 14px rgba(20,25,60,.18);
+  transition:transform .48s cubic-bezier(.3,1.32,.5,1),width .48s var(--ease),height .48s var(--ease),opacity .25s}
+body.view-app #pTabs>.glider.now{transition:none}
+body.view-app .p-tabs button:active i{transform:scale(.9)}
+body.view-app .p-tabs .avatar{width:26px;height:26px}
+@media (hover:hover) and (pointer:fine){body.view-app .p-tabs button:not([aria-pressed="true"]):hover i{background:var(--green3)}}
+
+/* ---------- Phone header: the venue under the logo ---------- */
+.p-brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+.p-brand small{font-size:11.5px;font-weight:500;color:var(--ink2);letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-brand small:empty{display:none}
+
+/* ---------- Admin hub: the menu folds to an icon rail ---------- */
+#admin{transition:grid-template-columns .38s var(--ease)}
+#admin.rail{grid-template-columns:84px minmax(0,1fr)}
+.a-side{overflow-x:hidden}
+.a-brand{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
+.a-brand img{margin:0 0 0 8px;min-width:0;transition:opacity .25s var(--ease)}
+.a-railbtn{flex:none;width:40px;height:40px;padding:0!important;border-radius:12px!important;display:grid!important;place-items:center;color:#DEE2EC}
+.a-railbtn svg{width:20px!important;height:20px!important;opacity:.9}
+.a-side button[data-sec]{white-space:nowrap;overflow:hidden;position:relative}
+.a-side button[data-sec] svg{flex:none;width:20px;height:20px;opacity:1;color:#C9CEE0;--ia:var(--gold2);--ih:var(--green)}
+.a-side button[data-sec][aria-pressed="true"] svg{color:#fff}
+.a-side .lbl{transition:opacity .25s var(--ease)}
+.a-side .sub{white-space:nowrap;transition:opacity .25s var(--ease)}
+#admin.rail .a-side{padding-left:14px;padding-right:14px}
+#admin.rail .a-brand{justify-content:center}
+#admin.rail .a-brand img{display:none}
+#admin.rail .a-side .lbl,#admin.rail .a-side .sub,#admin.rail .a-side .foot{opacity:0;pointer-events:none}
+#admin.rail .a-side .foot{visibility:hidden}
+#admin.rail .a-side button[data-sec]{justify-content:center;padding:12px 0;gap:0}
+#admin.rail .a-side button[data-sec] .lbl{width:0;overflow:hidden}
+#admin.rail .a-side button .n{position:absolute;top:5px;right:8px;margin:0;padding:0 5px;font-size:10px;line-height:15px}
+#admin.rail .a-side>.glider{box-shadow:none}
+@media (max-width:760px){.a-brand{display:none}#admin.rail{grid-template-columns:1fr}#admin.rail .a-side .lbl{opacity:1;width:auto}#admin.rail .a-side button[data-sec]{padding:11px 12px;gap:10px}}
+
+/* ---------- Festive looks (js/festive.js): the greeting strip, and the picker in Settings ---------- */
+.fest-slot:empty{display:none}
+.fest{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:999px;background:var(--goldbg);color:var(--green);
+  --fx2:var(--gold);--fx3:var(--gold2);font-size:12.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;animation:festin .6s var(--ease) both}
+.fest svg{width:17px;height:17px;flex:none}
+.fest svg:last-child{transform:scaleX(-1)}
+@keyframes festin{from{opacity:0;transform:translateY(-4px) scale(.96)}}
+.p-head .fest-slot{display:flex;justify-content:center;margin:10px 0 2px}
+.k-head .fest-slot{margin-left:auto}
+.k-head .fest{font-size:15px;padding:8px 18px}.k-head .fest svg{width:21px;height:21px}
+.k-head .fest-slot+.k-clock{margin-left:18px}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:12px 0 14px}
+.theme-pick{display:flex;flex-direction:column;align-items:flex-start;gap:8px;position:relative;padding:12px;border:0;border-radius:14px;background:#fff;
+  box-shadow:0 0 0 1px var(--line) inset;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.theme-pick b{font-size:13px;font-weight:600}
+.theme-pick .sw{display:flex}.theme-pick .sw i{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 2px #fff;margin-right:-6px}
+.theme-pick .mo{position:absolute;top:10px;right:10px;display:flex}.theme-pick .mo svg{width:22px;height:22px}
+.theme-pick[aria-checked="true"]{box-shadow:0 0 0 2px var(--green) inset,0 8px 18px rgba(20,25,60,.1)}
+.theme-pick[aria-checked="true"]::after{content:"✓";position:absolute;bottom:10px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;display:grid;place-items:center}
+/* the icon's colour flips at once (a colour fade waits for free frames while the 3D map builds); the pill carries the motion */
+body.view-app .p-tabs svg,body.view-app .p-chips svg{transition:none}

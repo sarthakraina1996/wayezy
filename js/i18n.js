@@ -16,6 +16,8 @@ const KIOSK_LANG=QS.get('lang')==='hi'?'hi':'en';
 let LANG=KIOSK_LANG;
 const LANGS={en:'English',hi:'हिन्दी'};
 const HI={
+  'Happy Diwali':'दीपावली की शुभकामनाएँ','Happy Holi':'होली की शुभकामनाएँ','Eid Mubarak':'ईद मुबारक','Merry Christmas':'क्रिसमस की शुभकामनाएँ',
+  'Happy New Year':'नए साल की शुभकामनाएँ','Happy Independence Day':'स्वतंत्रता दिवस की शुभकामनाएँ','Happy Republic Day':'गणतंत्र दिवस की शुभकामनाएँ',
   // map, floors, labels
   'Ground floor':'ग्राउंड फ़्लोर','First floor':'पहली मंज़िल','Second floor':'दूसरी मंज़िल','Ground':'ग्राउंड','First':'पहली','Second':'दूसरी',
   'All floors':'सभी मंज़िलें','You are here':'आप यहाँ हैं','Start: {name}':'शुरुआत: {name}','This kiosk':'यह कियोस्क','Main entrance':'मुख्य प्रवेश',

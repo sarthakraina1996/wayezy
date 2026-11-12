@@ -55,19 +55,24 @@ function adminNav(){const u=me();
     return [['overview','Dashboard','dash'],['stores','My store','store'],['myads','My kiosk ads','ads'],...(food&&can('rest.wait',b)?[['waits','Wait time','clock']]:[]),['offers','Offers','offer']];}
   return [['overview','Overview','dash'],['stores','Stores','store'],...(can('mall.ads')?[['ads','Ads & slots','ads'],['kiosks','Kiosks','kiosk']]:[]),['waits','Wait times','clock'],['offers','Offers & promotions','offer'],['events','Events','cal'],
     ...(can('mall.users')&&DBKIND==='server'?[['members','Members','user']]:[]),...(can('mall.users')?[['users','Users & permissions','users']]:[]),...(can('mall.settings')?[['settings','Settings','gear']]:[])];}
+/* the menu folds to an icon rail (remembered on this computer) */
+let ARAIL=false;try{ARAIL=localStorage.getItem('wz.admin.rail')==='1';}catch(e){}
 function adPendingCount(){return Object.values(INFO.adcreatives).filter(c=>c.status==='pending').length;}
 function renderAdmin(){
   const el=document.getElementById('admin');if(needsSignIn()){if(!el.querySelector('#aLogin'))renderSignIn(el);return;}
   const u=me();const role=ROLES()[u.role]||{name:'—'};
   const nav=adminNav();if(!nav.some(n=>n[0]===ASEC))ASEC='overview';
   const pend=pendingCount(),adp=adPendingCount();
-  el.innerHTML=`<aside class="a-side"><img src="${LOGO_G}" alt="Wayezy"><div class="sub">${isPortal()?'STORE PORTAL':'ADMIN HUB'}</div>
-    ${nav.map(([k,t,i])=>`<button data-sec="${k}" aria-pressed="${ASEC===k}">${icn(i)}${t}${k==='offers'&&pend&&can('mall.approve')?`<span class="n">${pend}</span>`:''}${k==='ads'&&adp?`<span class="n">${adp}</span>`:''}</button>`).join('')}
+  el.classList.toggle('rail',ARAIL);
+  el.innerHTML=`<aside class="a-side"><div class="a-brand"><img src="${LOGO_G}" alt="Wayezy"><button class="a-railbtn" id="aRail" aria-expanded="${!ARAIL}" aria-label="${ARAIL?'Open the menu':'Fold the menu to icons'}" title="${ARAIL?'Open the menu':'Fold the menu to icons'}">${icn('menu')}</button></div><div class="sub">${isPortal()?'STORE PORTAL':'ADMIN HUB'}</div>
+    ${nav.map(([k,t,i])=>`<button data-sec="${k}" aria-pressed="${ASEC===k}" title="${escapeHtml(t)}">${icn(i)}<span class="lbl">${t}</span>${k==='offers'&&pend&&can('mall.approve')?`<span class="n">${pend}</span>`:''}${k==='ads'&&adp?`<span class="n">${adp}</span>`:''}</button>`).join('')}
     <div class="foot">${{live:'● Live — changes reach every kiosk and phone instantly',offline:'○ Reconnecting to the server…',device:'● Saved on this device — kiosk and app tabs in this browser stay in sync',screen:'○ This browser blocks storage — changes last until the page reloads'}[dbLabel()]||'○ Connecting…'}${DBKIND==='server'&&DB&&DB.auth?' <button class="linkbtn" id="aSignOut">Sign out</button>':''}</div></aside>
     <main class="a-main" id="aMain"><div class="a-top"><h1>${escapeHtml(nav.find(n=>n[0]===ASEC)[1])}</h1>
     <div class="a-user"><span class="chip">${escapeHtml(role.name)}${u.store&&BRANDS[u.store]?' · '+escapeHtml(BRANDS[u.store].name):''}</span><select id="aUserSel" aria-label="Signed in as">${Object.entries(USERS()).map(([id,x])=>`<option value="${id}" ${id===AUSER?'selected':''}>${escapeHtml(x.name)}</option>`).join('')}</select></div></div>
     <div id="aBody"></div></main>`;
   el.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>{const was=ASEC;ASEC=b.dataset.sec;AEDIT=null;ADSTORE=null;ADDRAFT=null;renderAdmin();document.getElementById('aMain').scrollTop=0;if(was!==ASEC)swapIn(document.getElementById('aMain'));});
+  el.querySelector('#aRail').onclick=()=>{ARAIL=!ARAIL;try{localStorage.setItem('wz.admin.rail',ARAIL?'1':'');}catch(_){ }
+    el.classList.toggle('rail',ARAIL);const r=el.querySelector('#aRail'),t=ARAIL?'Open the menu':'Fold the menu to icons';r.setAttribute('aria-expanded',String(!ARAIL));r.setAttribute('aria-label',t);r.title=t;};
   const so=el.querySelector('#aSignOut');if(so)so.onclick=()=>{DB.logout();renderAdmin();};
   el.querySelector('#aUserSel').onchange=e=>{AUSER=e.target.value;try{localStorage.setItem('ireo.admin.user',AUSER);}catch(_){ }ASEC='overview';AEDIT=null;ADSTORE=null;ADDRAFT=null;renderAdmin();};
   const body=el.querySelector('#aBody');
@@ -199,7 +204,13 @@ function aUsers(el){const R=ROLES(),U=USERS();const edit=can('mall.users');
   const a=el.querySelector('#uAdd');if(a)a.onclick=()=>{const n=el.querySelector('#uN').value.trim();const r=el.querySelector('#uR').value;const s=el.querySelector('#uS').value;
     if(!n){toast('Add a name first');return;}if(ROLES()[r]&&ROLES()[r].scoped&&!s){toast('Pick the store this person manages');return;}saveDoc('users','u'+Date.now(),{name:n,role:r,store:s});};}
 function aSettings(el){const m=INFO.settings.mall||{};
-  el.innerHTML=`<div class="panel"><h2>Help desk</h2><label class="fld">Concierge phone number shown when visitors tap “Need help?”<input id="sH" value="${escapeHtml(m.helpDesk||'')}"></label>
+  const th=INFO.settings.theme||{},tk=THEMES[th.key]?th.key:'standard';
+  el.innerHTML=`<div class="panel"><h2>Festive look</h2><p class="note">Dress every kiosk and the phone app for a festival: its colours and a small greeting in the header. Changes reach every screen straight away. The admin hub keeps the standard look.</p>
+   <div class="themes" role="radiogroup" aria-label="Festive look">${Object.entries(THEMES).map(([k,x])=>`<button class="theme-pick" role="radio" data-theme="${k}" aria-checked="${k===tk}"><span class="sw">${(x.c||['#1E2551','#2C3778','#ECEEF6','#E8413B','#F28A84','#FDECEB']).filter((_,i)=>i===0||i===3||i===5).map(c=>`<i style="background:${c}"></i>`).join('')}</span><b>${escapeHtml(x.name)}</b>${x.motif?`<span class="mo" style="color:${x.c[0]};--fx2:${x.c[3]};--fx3:${x.c[4]}">${motifSVG(x.motif)}</span>`:''}</button>`).join('')}</div>
+   <div class="row2"><label class="fld">Greeting (leave empty for the festival's own)<input id="thG" maxlength="40" value="${escapeHtml(th.greet||'')}" placeholder="${escapeHtml(THEMES[tk].greet||'No greeting')}"></label>
+   <label class="fld">Back to the standard look after (optional)<input id="thU" type="date" value="${escapeHtml(th.until||'')}"></label></div>
+   <div class="linkrow"><button class="btn gold" id="thSave">Apply to all screens</button>${tk!=='standard'?'<button class="btn" id="thOff">Back to standard</button>':''}<span class="note" id="thNow">${tk==='standard'?'Now: standard look':'Now: '+escapeHtml(THEMES[tk].name)+(th.until?' until '+escapeHtml(th.until):'')}</span></div></div>
+  <div class="panel"><h2>Help desk</h2><label class="fld">Concierge phone number shown when visitors tap “Need help?”<input id="sH" value="${escapeHtml(m.helpDesk||'')}"></label>
   <label class="fld">Mall name (shown to visitors: “Welcome to …”, “Dine at …”)<input id="sNm" value="${escapeHtml(m.name||'')}" placeholder="Ireo Boulevard"></label>
   <label class="fld">Mall opening hours (shown in the app)<input id="sO" value="${escapeHtml(m.hours||'')}" placeholder="e.g. 11 AM – 11 PM"></label>
   <div class="row3"><label class="fld">Mall opens<input id="sMo" type="time" value="${escapeHtml(m.open||'10:00')}"></label><label class="fld">Mall closes<input id="sMc" type="time" value="${escapeHtml(m.close||'23:00')}"></label><label class="check" style="align-self:end"><input type="checkbox" id="sAds" ${m.adsEnabled===false?'':'checked'}> Kiosk ads on</label></div>
@@ -219,6 +230,9 @@ function aSettings(el){const m=INFO.settings.mall||{};
     saveDoc('settings','mall',Object.assign({},m,{name:el.querySelector('#sNm').value.trim().slice(0,60),helpDesk:el.querySelector('#sH').value.trim(),hours:el.querySelector('#sO').value.trim(),idleSecs:num('#sI',15,900,15),staleMins:num('#sW',10,1440,120),open:el.querySelector('#sMo').value||'10:00',close:el.querySelector('#sMc').value||'23:00',adsEnabled:el.querySelector('#sAds').checked,kioskVoice:el.querySelector('#sVoice').checked,
       appUrl:(v=>/^https?:\/\/[^\s<>"]+$/i.test(v)?v:'')(el.querySelector('#sApp').value.trim())}));
     if(el.querySelector('#sApp').value.trim()&&!/^https?:\/\//i.test(el.querySelector('#sApp').value.trim()))toast('The app link must start with https:// (left empty)');};
+  let pick=tk;el.querySelectorAll('.theme-pick').forEach(b=>b.onclick=()=>{pick=b.dataset.theme;el.querySelectorAll('.theme-pick').forEach(x=>x.setAttribute('aria-checked',String(x===b)));el.querySelector('#thG').placeholder=THEMES[pick].greet||'No greeting';});
+  el.querySelector('#thSave').onclick=async()=>{const u=el.querySelector('#thU').value;await saveDoc('settings','theme',{key:pick,greet:el.querySelector('#thG').value.trim().slice(0,40),until:/^\d{4}-\d{2}-\d{2}$/.test(u)?u:''});aSettings(el);};
+  const thOff=el.querySelector('#thOff');if(thOff)thOff.onclick=async()=>{await saveDoc('settings','theme',{key:'standard',greet:'',until:''});aSettings(el);};
   el.querySelector('#pkSave').onclick=()=>{const levels=el.querySelector('#pkL').value.split(',').map(s=>s.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)).filter(Boolean).slice(0,6);
     const lifts=[...el.querySelectorAll('[data-pklift]')].filter(x=>x.checked).map(x=>x.dataset.pklift);if(!levels.length){toast('Add at least one level');return;}if(!lifts.length){toast('Tick at least one lift');return;}
     saveDoc('settings','parking',{levels,lifts});};
