@@ -111,7 +111,8 @@ function coverStyle(b){if(PHOTOS[b])return '';const c=BRANDS[b].cat;const base={
 function bumpStat(b){if(!DBOK)return;const st=INFO.stats[b]||{};const today=todayISO();const next={directions:(st.directions||0)+1,today:st.day===today?(st.today||0)+1:1,day:today,lastAt:new Date().toISOString()};
   INFO.stats[b]=next;DB.doc('stats/'+b).set(next).catch(e=>console.warn('stats',e));}
 let toastEl=null,toastT=null;
-function toast(t,ms){if(!toastEl){toastEl=document.createElement('div');toastEl.className='toast';toastEl.setAttribute('role','status');document.body.appendChild(toastEl);}
+function toast(t,ms){if(!toastEl){toastEl=document.createElement('div');toastEl.className='toast';toastEl.setAttribute('role','status');}
+  {const h=overlayHost(toastEl);if(toastEl.parentNode!==h)h.appendChild(toastEl);}
   toastEl.textContent=t;toastEl.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{toastEl.hidden=true;},ms||3200);}
 
 /* ---------------- route helpers ---------------- */
@@ -402,8 +403,10 @@ function wirePanel(el){
 function renderPanels(){try{renderKiosk();renderApp();}catch(e){reportError(e,'panel');}}
 function renderDir(){renderPanels();}
 function renderCard(){renderPanels();}
+/* pop-ups and notes belong to the phone's screen in the app (on a computer the app sits in a phone frame) */
+function overlayHost(el){const scr=VIEW==='app'&&document.querySelector('#app .screen');el.classList.toggle('in-phone',!!scr);return scr||document.body;}
 function modal(html,onClose){const m=document.createElement('div');m.className='modal';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.innerHTML=`<div>${html}</div>`;
-  const close=()=>{m.remove();onClose&&onClose();};m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))close();});document.body.appendChild(m);
+  const close=()=>{m.remove();onClose&&onClose();};m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))close();});overlayHost(m).appendChild(m);
   const f=m.querySelector('button');if(f)f.focus();return m;}
 function showHelp(){const n=(INFO.settings.mall||{}).helpDesk;
   modal(`<h3>${T('How can we help?')}</h3><p class="note">${n?T('Call the concierge desk on {n}',{n:`<b style="font-size:20px;color:var(--ink)">${escapeHtml(n)}</b>`}):T('Please visit the concierge desk, or ask any member of the mall team.')}</p><div class="linkrow"><button class="btn green" data-close style="margin-left:auto">${T('Close')}</button></div>`);}

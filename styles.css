@@ -1074,3 +1074,10 @@ body.view-app .p-tabs .avatar{width:26px;height:26px}
 .theme-pick[aria-checked="true"]::after{content:"✓";position:absolute;bottom:10px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;display:grid;place-items:center}
 /* the icon's colour flips at once (a colour fade waits for free frames while the 3D map builds); the pill carries the motion */
 body.view-app .p-tabs svg,body.view-app .p-chips svg{transition:none}
+
+/* ---------- Pop-ups inside the phone (ui.js overlayHost): they cover the phone's screen, not the whole page ---------- */
+.modal.in-phone{position:absolute;z-index:60}
+.modal.in-phone>div{width:calc(100% - 32px);max-height:calc(100% - 40px);overflow-y:auto}
+.modal.in-phone.sheet{place-items:end stretch}
+.modal.in-phone.sheet>div{width:auto;max-width:none;max-height:calc(100% - 60px);border-radius:28px 28px 0 0;padding:26px 22px 34px}
+.toast.in-phone{position:absolute;left:16px;right:16px;bottom:96px;max-width:none;text-align:center}
