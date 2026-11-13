@@ -55,17 +55,40 @@ function adminNav(){const u=me();
     return [['overview','Dashboard','dash'],['stores','My store','store'],['myads','My kiosk ads','ads'],...(food&&can('rest.wait',b)?[['waits','Wait time','clock']]:[]),['offers','Offers','offer']];}
   return [['overview','Overview','dash'],['stores','Stores','store'],...(can('mall.ads')?[['ads','Ads & slots','ads'],['kiosks','Kiosks','kiosk']]:[]),['waits','Wait times','clock'],['offers','Offers & promotions','offer'],['events','Events','cal'],
     ...(can('mall.users')&&DBKIND==='server'?[['members','Members','user']]:[]),...(can('mall.users')?[['users','Users & permissions','users']]:[]),...(can('mall.settings')?[['settings','Settings','gear']]:[])];}
+const STORE_PORTAL_ICONS={
+  overview: `
+    <rect x="3" y="3" width="7" height="11" rx="1.5"/>
+    <rect x="14" y="3" width="7" height="6" rx="1.5"/>
+    <rect x="3" y="18" width="7" height="3" rx="1.25"/>
+    <rect x="14" y="13" width="7" height="8" rx="1.5"/>`,
+  stores: `
+    <path d="M4.5 10.75V19A1.5 1.5 0 0 0 6 20.5h12a1.5 1.5 0 0 0 1.5-1.5v-8.25"/>
+    <path d="M3 8.5 5.25 4h13.5L21 8.5v.65a2.1 2.1 0 0 1-4.2 0 2.4 2.4 0 0 1-4.8 0 2.4 2.4 0 0 1-4.8 0 2.1 2.1 0 0 1-4.2 0Z"/>
+    <path d="M10 20.5v-5.75h4v5.75"/>`,
+  myads: `
+    <rect x="2.75" y="4" width="18.5" height="12.5" rx="2"/>
+    <path d="M10.5 7.75 14.5 10.25l-4 2.5Z"/>
+    <path d="M12 16.5V20m-4 0h8"/>`,
+  waits: `
+    <circle cx="12" cy="13" r="8"/>
+    <path d="M9.5 2.25h5M12 2.25V5m5.75 2.25 1.75-1.75M12 9v4l2.25 1.5"/>`,
+  offers: `
+    <path d="M20.5 5v5.4c0 .45-.18.88-.5 1.2l-8.6 8.6a1.7 1.7 0 0 1-2.4 0L3.8 15a1.7 1.7 0 0 1 0-2.4L12.4 4c.32-.32.75-.5 1.2-.5H19A1.5 1.5 0 0 1 20.5 5Z"/>
+    <circle cx="16.6" cy="7.4" r="1.05"/>`
+};
+const storePortalIcon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${STORE_PORTAL_ICONS[k]}</svg>`;
 /* the menu folds to an icon rail (remembered on this computer) */
 let ARAIL=false;try{ARAIL=localStorage.getItem('wz.admin.rail')==='1';}catch(e){}
 function adPendingCount(){return Object.values(INFO.adcreatives).filter(c=>c.status==='pending').length;}
 function renderAdmin(){
   const el=document.getElementById('admin');if(needsSignIn()){if(!el.querySelector('#aLogin'))renderSignIn(el);return;}
   const u=me();const role=ROLES()[u.role]||{name:'—'};
+  const portal=isPortal();
   const nav=adminNav();if(!nav.some(n=>n[0]===ASEC))ASEC='overview';
   const pend=pendingCount(),adp=adPendingCount();
   el.classList.toggle('rail',ARAIL);
-  el.innerHTML=`<aside class="a-side"><div class="a-brand"><img src="${LOGO_G}" alt="Wayezy"><button class="a-railbtn" id="aRail" aria-expanded="${!ARAIL}" aria-label="${ARAIL?'Open the menu':'Fold the menu to icons'}" title="${ARAIL?'Open the menu':'Fold the menu to icons'}">${icn('menu')}</button></div><div class="sub">${isPortal()?'STORE PORTAL':'ADMIN HUB'}</div>
-    ${nav.map(([k,t,i])=>`<button data-sec="${k}" aria-pressed="${ASEC===k}" title="${escapeHtml(t)}">${icn(i)}<span class="lbl">${t}</span>${k==='offers'&&pend&&can('mall.approve')?`<span class="n">${pend}</span>`:''}${k==='ads'&&adp?`<span class="n">${adp}</span>`:''}</button>`).join('')}
+  el.innerHTML=`<aside class="a-side"><div class="a-brand"><img src="${LOGO_G}" alt="Wayezy"><button class="a-railbtn" id="aRail" aria-expanded="${!ARAIL}" aria-label="${ARAIL?'Open the menu':'Fold the menu to icons'}" title="${ARAIL?'Open the menu':'Fold the menu to icons'}">${icn('menu')}</button></div><div class="sub">${portal?'STORE PORTAL':'ADMIN HUB'}</div>
+    ${nav.map(([k,t,i])=>`<button data-sec="${k}" aria-pressed="${ASEC===k}" title="${escapeHtml(t)}">${portal?storePortalIcon(k):icn(i)}<span class="lbl">${t}</span>${k==='offers'&&pend&&can('mall.approve')?`<span class="n">${pend}</span>`:''}${k==='ads'&&adp?`<span class="n">${adp}</span>`:''}</button>`).join('')}
     <div class="foot">${{live:'● Live — changes reach every kiosk and phone instantly',offline:'○ Reconnecting to the server…',device:'● Saved on this device — kiosk and app tabs in this browser stay in sync',screen:'○ This browser blocks storage — changes last until the page reloads'}[dbLabel()]||'○ Connecting…'}${DBKIND==='server'&&DB&&DB.auth?' <button class="linkbtn" id="aSignOut">Sign out</button>':''}</div></aside>
     <main class="a-main" id="aMain"><div class="a-top"><h1>${escapeHtml(nav.find(n=>n[0]===ASEC)[1])}</h1>
     <div class="a-user"><span class="chip">${escapeHtml(role.name)}${u.store&&BRANDS[u.store]?' · '+escapeHtml(BRANDS[u.store].name):''}</span><select id="aUserSel" aria-label="Signed in as">${Object.entries(USERS()).map(([id,x])=>`<option value="${id}" ${id===AUSER?'selected':''}>${escapeHtml(x.name)}</option>`).join('')}</select></div></div>
