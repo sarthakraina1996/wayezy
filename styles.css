@@ -1081,3 +1081,13 @@ body.view-app .p-tabs svg,body.view-app .p-chips svg{transition:none}
 .modal.in-phone.sheet{place-items:end stretch}
 .modal.in-phone.sheet>div{width:auto;max-width:none;max-height:calc(100% - 60px);border-radius:28px 28px 0 0;padding:26px 22px 34px}
 .toast.in-phone{position:absolute;left:16px;right:16px;bottom:96px;max-width:none;text-align:center}
+
+/* ---------- Phone chips on iPhone Safari: keep the sliding pill under the icon and word ----------
+   Safari painted the pill over the selected chip's icon and word when the row had a fade mask and the pill its own
+   GPU layer (and iOS can leave :active stuck after a tap). No mask, no layer hint, and the press shrinks the content. */
+body.view-app .p-chips{-webkit-mask-image:none;mask-image:none;padding-right:16px}
+#pChips>.glider{will-change:auto}
+#pChips{isolation:isolate}
+#pChips>button:active{transform:none}
+#pChips>button:active>*{transform:scale(.94)}
+#pChips>button>*{transition:transform .22s var(--ease)}
