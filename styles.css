@@ -1091,3 +1091,66 @@ body.view-app .p-chips{-webkit-mask-image:none;mask-image:none;padding-right:16p
 #pChips>button:active{transform:none}
 #pChips>button:active>*{transform:scale(.94)}
 #pChips>button>*{transition:transform .22s var(--ease)}
+
+/* ---------- Phone, simpler (Nov 14): the map first, a light quick row, a slim welcome, Services, a calmer sign-in ---------- */
+/* Home: the map is the hero */
+body.view-app .p-maptitle{margin-top:18px}
+body.view-app .p-mapbox{height:380px;margin-top:10px;border-radius:26px}
+@media (max-width:700px){body.view-app .p-mapbox{height:min(52vh,440px)}}
+/* quick row: five light buttons, no boxes */
+body.view-app .quick,body.view-app .quick.five{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:18px}
+body.view-app .quick button,body.view-app .quick.five button{background:transparent;box-shadow:none;border-radius:16px;padding:4px 0;gap:8px;font-size:12px;font-weight:500;color:var(--ink)}
+body.view-app .quick i,body.view-app .quick.five i{width:52px;height:52px;border-radius:18px;background:#fff;box-shadow:0 0 0 1px var(--line) inset,0 4px 12px rgba(20,25,60,.05)}
+body.view-app .quick svg{width:23px;height:23px;color:var(--green)}
+body.view-app .quick button:active i{transform:scale(.93)}
+/* welcome: one slim white row */
+body.view-app .greet{background:#fff;color:var(--ink);border-radius:20px;padding:14px 16px;margin-top:16px;box-shadow:0 0 0 1px var(--line) inset}
+body.view-app .greet.mem{box-shadow:0 0 0 1px var(--line) inset}
+body.view-app .greet small{color:var(--gold);letter-spacing:.14em;font-size:10.5px;font-weight:600}
+body.view-app .greet b{font-size:16px;font-weight:600;margin:2px 0 1px;color:var(--ink)}
+body.view-app .greet span{color:var(--ink2);font-size:12.5px}
+body.view-app .greet-join{background:var(--green);color:#fff;padding:10px 20px}
+body.view-app .greet-pts{border:0;background:var(--green3);color:var(--green);border-radius:14px;padding:8px 14px}
+body.view-app .greet .greet-pts b{color:var(--green);font-size:18px;margin:0}body.view-app .greet .greet-pts span{color:var(--ink2);letter-spacing:.1em}
+body.view-app .greet-car{margin-top:16px;box-shadow:0 0 0 1px var(--line) inset}
+body.view-app .greet-car>i svg{color:#fff;--ia:var(--gold2)}
+body.view-app .greet-car.ready{box-shadow:0 0 0 1.5px var(--ok) inset}body.view-app .greet-car.ready>i{background:var(--ok)}body.view-app .greet-car.ready small{color:var(--ok)}
+/* Services: parking and valet cards */
+.svc-stack{display:grid;gap:10px}
+.sec-title .memtag{font-size:11px}
+body.view-app .m-park{border:0;box-shadow:0 0 0 1px var(--line) inset;border-radius:20px;padding:16px 14px}
+body.view-app .m-park>i{width:46px;height:46px;border-radius:16px}body.view-app .m-park>i svg{width:22px;height:22px;color:var(--green)}
+body.view-app .m-car{box-shadow:0 0 0 1px var(--line) inset,0 10px 24px rgba(20,25,60,.06)}
+.m-car-top>i svg{--ia:var(--gold2);color:#fff}
+.m-car.valet.ready{box-shadow:0 0 0 1.5px var(--ok) inset,0 10px 24px rgba(20,25,60,.06)}.m-car.valet.ready .m-car-top>i{background:var(--ok)}.m-car.valet.ready .m-car-top small{color:var(--ok)}
+.m-car.valet .m-car-top b{font-size:19px}
+.m-car.valet .btn.gold svg{color:#fff;--ia:#fff}
+.v-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px}
+.v-steps span{font-size:11.5px;color:var(--ink3);font-weight:500}
+.v-steps i{display:block;height:4px;border-radius:2px;background:var(--line);margin-bottom:6px}
+.v-steps span.on{color:var(--ink)}.v-steps span.on i{background:var(--green)}
+.m-car.valet.ready .v-steps span.on i{background:var(--ok)}
+body.view-app .m-row>i{border-radius:14px;background:var(--green3)}body.view-app .m-row>i svg{width:19px;height:19px;color:var(--green)}
+body.view-app .m-row>i.pos{background:#E3F1E7}body.view-app .m-row>i.neg{background:#F3ECE4}
+/* Account, signed out: a lighter invitation */
+body.view-app .m-hero{border-radius:24px;padding:24px 22px}
+body.view-app .m-hero h2{font-size:23px}
+body.view-app .m-actions button{border-radius:20px}
+body.view-app .m-actions i{box-shadow:none;background:var(--green3);border-radius:16px;width:46px;height:46px}body.view-app .m-actions i svg{color:var(--green)}
+/* sheets: a close button, an icon, three dots for the steps */
+.sheet-body{position:relative}
+.sheet-x{position:absolute;right:-4px;top:-6px;width:36px;height:36px;border:0;border-radius:50%;background:var(--green3);display:grid;place-items:center;color:var(--ink2)}
+.sheet-x svg{width:18px;height:18px;transform:rotate(45deg)}
+.sheet-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:18px;background:var(--green3);margin-bottom:14px}
+.sheet-ic svg{width:25px;height:25px;color:var(--green)}
+.sheet-dots{display:flex;gap:5px;margin-bottom:12px}.sheet-dots span{width:18px;height:4px;border-radius:2px;background:var(--line)}.sheet-dots span.on{background:var(--green)}
+.sheet-body h3{font-size:21px;margin-bottom:4px}
+.m-field{background:#F7F8FB;box-shadow:none;height:58px;border-radius:18px}
+.m-codein{background:#F7F8FB;box-shadow:none;border-radius:18px}
+.m-field:focus-within,.m-codein:focus{box-shadow:0 0 0 2px var(--green) inset;background:#fff}
+.sheet-body .btn.wide{height:54px;border-radius:18px;font-size:16px}
+.sheet-body .note.small{text-align:center;margin-bottom:0}
+#app[data-tab="svc"] .p-search,#app[data-tab="svc"] .p-chips{display:none}
+body.view-app .seg{background:#E9EBF2}
+body.view-app .p-mapbox{height:340px}
+@media (max-width:700px){body.view-app .p-mapbox{height:min(42vh,360px)}}

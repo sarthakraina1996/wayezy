@@ -16,6 +16,16 @@ const KIOSK_LANG=QS.get('lang')==='hi'?'hi':'en';
 let LANG=KIOSK_LANG;
 const LANGS={en:'English',hi:'हिन्दी'};
 const HI={
+  "What's on":'क्या चल रहा है','Offers and events at {venue}':'{venue} के ऑफ़र और इवेंट','Members':'मेंबर','Parking':'पार्किंग','Parking & valet':'पार्किंग और वैले','Valet':'वैले','Close':'बंद कीजिए',
+  'Valet from your phone':'फ़ोन से वैले','Call your car before you leave, and collect it when it is ready.':'निकलने से पहले अपनी कार मँगाइए, और तैयार होने पर ले लीजिए।','Save where you parked, and get walked back to it.':'जहाँ कार पार्क की है वह सेव कीजिए, ऐप आपको वापस वहाँ ले जाएगा।',
+  'Using the valet?':'वैले पार्किंग ली है?','Add your ticket, and call your car from your phone.':'अपना टिकट जोड़िए, और फ़ोन से अपनी कार मँगाइए।','With the valet':'कार वैले के पास है','Call your car a few minutes before you leave.':'निकलने से कुछ मिनट पहले अपनी कार मँगाइए।',
+  'Your car is on its way':'आपकी कार आ रही है','We will tell you here when it is at the valet desk.':'कार वैले डेस्क पर पहुँचते ही हम यहाँ बताएँगे।','Your car is ready':'आपकी कार तैयार है','Please collect it at the valet desk.':'कृपया वैले डेस्क से ले लीजिए।',
+  'Valet ticket {n}':'वैले टिकट {n}','Parked':'पार्क','Called':'मँगाई','Ready':'तैयार','Demo: no valet desk is connected, so the car shows as ready in a few seconds.':'डेमो: कोई वैले डेस्क जुड़ा नहीं है, इसलिए कार कुछ सेकंड में तैयार दिखेगी।',
+  'Bring my car':'मेरी कार मँगाइए','Change ticket':'टिकट बदलिए','Remove':'हटाइए','Cancel the request':'अनुरोध रद्द कीजिए','I have my car':'कार मिल गई','Sign in to use the valet from your phone':'फ़ोन से वैले के लिए साइन इन कीजिए',
+  'Your valet ticket':'आपका वैले टिकट','Enter the number on the ticket the valet gave you.':'वैले से मिले टिकट का नंबर डालिए।','e.g. 1042':'जैसे 1042','Valet ticket number':'वैले टिकट नंबर','Save my ticket':'टिकट सेव कीजिए',
+  'Enter the number on your valet ticket.':'अपने वैले टिकट का नंबर डालिए।','Valet ticket saved':'वैले टिकट सेव हो गया','Parking and everything else you may need at {venue}':'{venue} में पार्किंग और बाक़ी सब सेवाएँ','Around the mall':'मॉल में',
+  'The nearest one, with the way there':'सबसे पास वाला, रास्ते के साथ','The nearest lift':'सबसे पास की लिफ्ट','The way out to the main entrance':'मुख्य द्वार तक का रास्ता','Lifts only, no escalators':'सिर्फ़ लिफ्ट, एस्केलेटर नहीं','Ask the concierge':'कंसीयर्ज से पूछिए',
+  'The valet has your request':'वैले को आपका अनुरोध मिल गया',
   'Happy Diwali':'दीपावली की शुभकामनाएँ','Happy Holi':'होली की शुभकामनाएँ','Eid Mubarak':'ईद मुबारक','Merry Christmas':'क्रिसमस की शुभकामनाएँ',
   'Happy New Year':'नए साल की शुभकामनाएँ','Happy Independence Day':'स्वतंत्रता दिवस की शुभकामनाएँ','Happy Republic Day':'गणतंत्र दिवस की शुभकामनाएँ',
   // map, floors, labels

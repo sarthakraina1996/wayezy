@@ -130,7 +130,7 @@ let KTAB='map',PTAB='home';
 /* Categories live in the chips at the top of the panel; places to go (map, A-Z, offers, events, services)
    in the bar at the bottom. Nothing is offered twice. */
 const KTABS=[['map','Map','map'],['directory','Directory','az'],['offers','Offers','offer'],['events','Events','cal'],['services','Services','svc']];
-const PTABS=[['home','Home','home'],['map','Map','map'],['offers','Offers','offer'],['events','Events','cal'],['me','Account','user']];
+const PTABS=[['home','Home','home'],['map','Map','map'],['offers','Offers','offer'],['svc','Services','svc'],['me','Account','user']];   // events sit with the offers
 let OFFTAB='all';                                         // the phone's Offers tab: everything, or members' offers
 const PCHIPS=[['all','All','store'],['fashion','Fashion','hanger'],['dining','Dining','fork'],['home','Home Decor','sofa'],['beauty','Beauty','lotus'],['more','More','more']];
 function renderQuick(){applyTheme();{const v=document.getElementById('pVenue');if(v&&v.textContent!==venueName())v.textContent=venueName();}
@@ -202,12 +202,13 @@ function offerCardHTML(o){const B=BRANDS[o.b],lock=offerLocked(o),app=VIEW==='ap
 function featuredHTML(){const list=brandKeys().filter(b=>PHOTOS[b]).sort((a,b)=>(liveOffers(b).length-liveOffers(a).length)||BRANDS[a].name.localeCompare(BRANDS[b].name)).slice(0,10);
   return `<div class="sec-title"><h3>${T('Featured stores')}</h3></div><div class="hscroll feat-row" data-carousel="feat" data-auto="1">${list.map(b=>`<button class="fcard ph ph-${b}" data-b="${b}"><span class="fcat">${escapeHtml(catName(BRANDS[b].cat))} · ${floorsOfBrand(b).map(flShort).join(', ')}</span><b>${escapeHtml(BRANDS[b].name)}</b>${liveOffers(b).length?`<em>${escapeHtml(offerTitle(liveOffers(b)[0]))}</em>`:''}</button>`).join('')}</div>`;}
 function greetHTML(){const h=new Date().getHours();const g=T(h<12?'Good morning':h<17?'Good afternoon':'Good evening');
-  const nowait=dineList().filter(b=>{const w=waitView(b);return w&&w.cls==='ok';}).length;const offers=allOffers().length;
-  const mem=typeof Member!=='undefined'&&Member.on,join=typeof Member!=='undefined'&&Member.can&&!mem;
-  return `<div class="greet${mem?' mem':''}"><div><small>${g}${mem&&firstName()?', '+escapeHtml(firstName()):''}</small><b>${T(mem?'Good to see you at {venue}':'Welcome to {venue}',{venue:venueName()})}</b><span>${mallHours()?T('Open today {hours}',{hours:escapeHtml(mallHours())})+' · ':''}${nowait?T(nowait>1?'{n} restaurants with no wait':'{n} restaurant with no wait',{n:nowait}):''}${offers?(nowait?' · ':'')+T(offers>1?'{n} offers live':'{n} offer live',{n:offers}):''}</span></div>
-    ${mem?`<button class="greet-pts" data-act="account"><b>${(Member.me.points||0).toLocaleString(locale())}</b><span>${T('Points')}</span></button>`:join?`<button class="greet-join" data-act="signin">${T('Join')}</button>`:''}</div>
-    ${mem&&Member.me.car?`<button class="greet-car" data-act="findcar"><i>${IC.car}</i><span><small>${T('Your car')}</small><b>${escapeHtml(Member.me.car.level)} · ${escapeHtml(Member.me.car.spot)}</b></span><em>${T('Find my car')}${IC.chev}</em></button>`:''}
-    <div class="quick${mem?' five':''}">${[['wc','wc','Toilets'],['lift','lift','Lifts'],['exit','exit','Exit'],...(mem?[['car','car','My car']]:[]),['help','phone','Help']].map(([a,i,t])=>`<button data-act="${a}"><i>${icn(i)}</i><span>${T(t)}</span></button>`).join('')}</div>`;}
+  const offers=allOffers().length;const mem=typeof Member!=='undefined'&&Member.on,join=typeof Member!=='undefined'&&Member.can&&!mem;
+  const v=mem&&Member.me.valet,c=mem&&Member.me.car;
+  return `<div class="quick five">${[['wc','wc','Toilets'],['lift','lift','Lifts'],['exit','exit','Exit'],['svc','car','Parking'],['help','help','Help']].map(([a,i,t])=>`<button data-act="${a}"><i>${icn(i)}</i><span>${T(t)}</span></button>`).join('')}</div>
+    ${v&&v.status!=='parked'?`<button class="greet-car ${v.status}" data-act="svc"><i>${icn('key')}</i><span><small>${T('Valet')}</small><b>${T(v.status==='ready'?'Your car is ready':'Your car is on its way')}</b></span><em>${IC.chev}</em></button>`
+      :c?`<button class="greet-car" data-act="findcar"><i>${IC.car}</i><span><small>${T('Your car')}</small><b>${escapeHtml(c.level)} · ${escapeHtml(c.spot)}</b></span><em>${T('Find my car')}${IC.chev}</em></button>`:''}
+    <div class="greet${mem?' mem':''}"><div><small>${g}${mem&&firstName()?', '+escapeHtml(firstName()):''}</small><b>${T(mem?'Good to see you at {venue}':'Welcome to {venue}',{venue:venueName()})}</b><span>${[mallHours()?T('Open today {hours}',{hours:escapeHtml(mallHours())}):'',offers?T(offers>1?'{n} offers live':'{n} offer live',{n:offers}):''].filter(Boolean).join(' · ')}</span></div>
+    ${mem?`<button class="greet-pts" data-act="account"><b>${(Member.me.points||0).toLocaleString(locale())}</b><span>${T('Points')}</span></button>`:join?`<button class="greet-join" data-act="signin">${T('Join')}</button>`:''}</div>`;}
 function favRowHTML(){if(typeof Member==='undefined'||!Member.on)return '';const favs=(Member.me.favs||[]).filter(isBrand);if(!favs.length)return '';
   return `<div class="sec-title"><h3>${T('Your stores')}</h3><button data-act="account">${T('See all')}</button></div><div class="hscroll favrow">${favs.slice(0,10).map(b=>`<button class="favchip" data-b="${b}">${thumbHTML(b)}<span>${escapeHtml(BRANDS[b].name)}</span></button>`).join('')}</div>`;}
 /* ---------------- store card ---------------- */
@@ -329,11 +330,12 @@ function renderApp(){
   let h='';const q=(state.query||'').trim();
   if(q){const list=brandsList();const fac=searchFacility(q);h=(fac?`<div class="sec-title"><h3>${T('Services')}</h3></div>`+facilityHTML(fac):'')+`<div class="sec-title"><h3>${T('Results ({n})',{n:list.length})}</h3></div>`+(list.length?list.map(b=>itemHTML(b)).join(''):`<p class="empty">${T('Nothing matches “{q}”.',{q:escapeHtml(q)})}</p>`);}
   else if(state.brand||state.toilet)h='';
-  else if(PTAB==='offers'){const all=allOffers(),mo=all.filter(o=>o.members),o=(OFFTAB==='members'?mo:all).slice().sort((a,b)=>(b.members?1:0)-(a.members?1:0));
-    h=`<div class="p-page"><h2>${T('Offers')}</h2><p>${T(all.length===1?'{n} offer live across the mall today':'{n} offers live across the mall today',{n:all.length})}</p></div>
-      <div class="seg wide" role="group"><button data-off="all" aria-pressed="${OFFTAB==='all'}">${T('All offers')} · ${all.length}</button><button data-off="members" aria-pressed="${OFFTAB==='members'}">${IC.star}${T('For members')} · ${mo.length}</button></div>`
-      +(o.length?o.map(offerCardHTML).join(''):emptyHTML('offer',T(OFFTAB==='members'?'No members-only offers right now. New ones appear here first.':'No offers are live right now.'),OFFTAB==='members'?'':T('Stores add their offers here as they go live.')))+liveAds().map(promoHTML).join('');}
-  else if(PTAB==='events'){const n=eventsList().length;h=`<div class="p-page"><h2>${T('Events')}</h2><p>${T('What is on at {venue}',{venue:venueName()})}</p></div>`+eventsHTML();}
+  else if(PTAB==='offers'||PTAB==='events'){if(PTAB==='events'){PTAB='offers';OFFTAB='events';}
+    const all=allOffers(),mo=all.filter(o=>o.members),ne=eventsList().length,o=(OFFTAB==='members'?mo:all).slice().sort((a,b)=>(b.members?1:0)-(a.members?1:0));
+    h=`<div class="p-page"><h2>${T("What's on")}</h2><p>${T('Offers and events at {venue}',{venue:venueName()})}</p></div>
+      <div class="seg wide" role="group"><button data-off="all" aria-pressed="${OFFTAB==='all'}">${T('Offers')} · ${all.length}</button><button data-off="members" aria-pressed="${OFFTAB==='members'}">${IC.star}${T('Members')} · ${mo.length}</button><button data-off="events" aria-pressed="${OFFTAB==='events'}">${T('Events')} · ${ne}</button></div>`
+      +(OFFTAB==='events'?eventsHTML():(o.length?o.map(offerCardHTML).join(''):emptyHTML('offer',T(OFFTAB==='members'?'No members-only offers right now. New ones appear here first.':'No offers are live right now.'),OFFTAB==='members'?'':T('Stores add their offers here as they go live.')))+liveAds().map(promoHTML).join(''));}
+  else if(PTAB==='svc')h=servicesHTML();
   else if(PTAB==='me')h=accountHTML();
   else if(state.cat==='dining')h=`<div class="sec-title"><h3>${T('Dining · live wait times')}</h3></div>`+dineList().map(b=>itemHTML(b)).join('');
   else if(state.cat){const list=brandsList();h=`<div class="sec-title"><h3>${escapeHtml(T(GROUPS[state.cat].name))}</h3></div>`+list.map(b=>itemHTML(b)).join('');}
@@ -384,12 +386,16 @@ function wirePanel(el){
   el.querySelectorAll('[data-act]').forEach(b=>{const a=b.dataset.act;
     if(a==='from'){b.onchange=()=>{poke();APP_ORIGIN=b.value;if(typeof LIVE!=='undefined')LIVE.manual=b.value!=='me';setOrigin(APP_ORIGIN);reroute();};return;}
     const act=()=>{poke();
+    if(VIEW==='app'&&PTAB!=='home'&&['wc','wcany','wcf','wcm','lift','exit'].includes(a)){PTAB='home';renderQuick();document.getElementById('pScroll').scrollTop=0;}
     if(a==='wc'||a==='wcany')nearestToilet(null);else if(a==='wcf')nearestToilet('f');else if(a==='wcm')nearestToilet('m');else if(a==='lift')nearestLift();else if(a==='exit')goEntrance();
     else if(a==='stepfree'){state.stepFree=!state.stepFree;toast(T(state.stepFree?'Step-free routes on: lifts only, no escalators':'Step-free routes off'));if(state.route||state.noRoute)reroute();else renderPanels();Member.prefs();}
     else if(a==='signin')signInSheet();else if(a==='signout')Member.signOut();else if(a==='editname')signInSheet('__name');else if(a==='account')goAccount();
     else if(a==='fav'){if(state.brand)Member.toggleFav(state.brand);}
     else if(a==='car'){if(Member.on&&Member.me.car)findMyCar();else parkSheet();}else if(a==='findcar')findMyCar();else if(a==='park')parkSheet();
     else if(a==='clearcar'){Member.save({car:null});toast(T('Parking spot cleared'));}
+    else if(a==='svc'){PTAB='svc';state.cat=null;setMapFull(false);renderQuick();renderPanels();document.getElementById('pScroll').scrollTop=0;}
+    else if(a==='valet')valetSheet();else if(a==='valetask'){valetSend({request:true},{status:'requested'});toast(T('The valet has your request'));}
+    else if(a==='valetcancel')valetSend({request:false},{status:'parked'});else if(a==='valetdone')Member.save({valet:null});
     else if(a==='showcard')showCardSheet();else if(a==='favs'){const f=document.getElementById('mFavs');if(f)f.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});}
     else if(a==='voice'){Voice.init('app');Voice.set(!Voice.on,'app');renderPanels();}
     else if(a==='help')showHelp();else if(a==='lang')setLang(LANG==='hi'?'en':'hi',true);else if(a==='mode'){MODE=MODE==='day'?'evening':'day';applyMode();renderPanels();}
@@ -469,7 +475,7 @@ document.getElementById('kHelp').onclick=showHelp;
 
 /* ---------------- view switching & map mounting ---------------- */
 const mapwrap=document.getElementById('mapwrap');
-function setMapFull(on){const box=document.getElementById('pMapBox');box.classList.toggle('full',!!on);if(on)box.closest('.screen').appendChild(box);else document.getElementById('pScroll').insertBefore(box,document.getElementById('pSteps'));}
+function setMapFull(on){const box=document.getElementById('pMapBox');box.classList.toggle('full',!!on);if(on)box.closest('.screen').appendChild(box);else document.getElementById('pScroll').insertBefore(box,document.getElementById('pGreet'));}
 document.getElementById('pBack').onclick=()=>{if(typeof RM!=='undefined'&&RM.on){exitRouteMode(false);return;}PTAB='home';setMapFull(false);renderQuick();renderPanels();};
 document.getElementById('pExpand').onclick=()=>{const full=!document.getElementById('pMapBox').classList.contains('full');PTAB=full?'route':'home';setMapFull(full);renderQuick();};
 /* the one map moves between the kiosk and the phone; in the admin hub it waits, hidden, in the kiosk slot */

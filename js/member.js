@@ -50,7 +50,7 @@ const DemoMembers={K:'wz.demoMembers',
   fail(msg,status){throw Object.assign(new Error(T(msg)),{status});},
   rand(n){let s='';const a=new Uint32Array(n);(window.crypto||{}).getRandomValues?crypto.getRandomValues(a):a.forEach((_,i)=>a[i]=Math.random()*1e9);a.forEach(x=>s+=x%10);return s;},
   view(m){return {id:m.id,name:m.name||'',phone:m.phone.replace(/^(\+91)(\d{2})\d{5}(\d{3})$/,'$1 $2•••••$3'),joined:m.joined,points:m.points||0,
-    favs:m.favs||[],prefs:m.prefs||{},car:m.car||null,log:(m.log||[]).slice(-10).reverse()};},
+    favs:m.favs||[],prefs:m.prefs||{},car:m.car||null,valet:m.valet||null,log:(m.log||[]).slice(-10).reverse()};},
   async call(path,method,body){const d=this.db();method=method||'GET';body=body||{};
     const phone=(()=>{const x=String(body.phone||'').replace(/\D/g,'').slice(-10);return /^[6-9]\d{9}$/.test(x)?'+91'+x:'';})();
     if(path==='start'){if(!phone)this.fail('Enter a 10-digit mobile number.',400);
@@ -62,6 +62,7 @@ const DemoMembers={K:'wz.demoMembers',
       if(!m){let id;do{id=String(1+Number(this.rand(1))%9)+this.rand(9);}while(d.members[id]);m=d.members[id]={id,phone,name:'',joined:new Date().toISOString(),points:0,favs:[],prefs:{},log:[]};}
       const token=this.rand(32);d.sessions[token]=m.id;this.put(d);return {ok:true,token,isNew,member:this.view(m)};}
     const m=d.members[d.sessions[Member.token]];if(!m)this.fail('Please sign in again.',401);
+    if(m.valet&&m.valet.status==='requested'&&Date.now()-Date.parse(m.valet.at)>12000){m.valet.status='ready';m.valet.at=new Date().toISOString();this.put(d);}   // the demo has no valet desk: the car is "ready" a few seconds after it is asked for
     if(path==='logout'){delete d.sessions[Member.token];this.put(d);return {ok:true};}
     if(path==='me'&&method==='PUT'){const clean=(v,n)=>String(v==null?'':v).replace(/[\u0000-\u001f\u007f<>]/g,'').trim().slice(0,n);
       if('name' in body)m.name=clean(body.name,40);
@@ -71,6 +72,12 @@ const DemoMembers={K:'wz.demoMembers',
       else if(body.car&&typeof body.car==='object'){const level=String(body.car.level||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4),spot=clean(body.car.spot,16);
         if(!level||!spot)this.fail('Choose the level and enter the pillar or bay number.',400);
         m.car={level,spot,note:clean(body.car.note,60),at:new Date().toISOString()};}
+      if(body.valet===null)delete m.valet;
+      else if(body.valet&&typeof body.valet==='object'){const ticket=String(body.valet.ticket||'').toUpperCase().replace(/[^A-Z0-9-]/g,'').slice(0,10);
+        if(ticket&&(!m.valet||m.valet.ticket!==ticket))m.valet={ticket,status:'parked',at:new Date().toISOString()};
+        if(!m.valet)this.fail('Enter the number on your valet ticket.',400);
+        if(body.valet.request===true&&m.valet.status==='parked'){m.valet.status='requested';m.valet.at=new Date().toISOString();}
+        if(body.valet.request===false&&m.valet.status==='requested'){m.valet.status='parked';m.valet.at=new Date().toISOString();}}
       this.put(d);}
     return {ok:true,member:this.view(m)};}};
 /* a member's offers are unlocked for them; for everyone else (and on the kiosk) they are a locked teaser */
@@ -94,10 +101,10 @@ function showCardSheet(){const m=Member.me;if(!m)return;const s=modal(`<div clas
     <div class="m-code">${barcodeSVG(m.id)}<span>${memberNo(m.id)}</span></div>
     <div class="m-show-foot"><span>${T('Points')} <b>${(m.points||0).toLocaleString(locale())}</b></span><span>${T('Member since')} <b>${sinceText(m)}</b></span></div><button class="btn wide" data-close>${T('Done')}</button></div>`);
   s.classList.add('sheet');}
-const BENEFITS=[['lock','Members-only offers','Offers from the stores that only members can use.'],['heart','Your stores','Save the stores you like and get to them in one tap.'],
-  ['car','Find my car','Save where you parked in the basement, and get taken back to it.'],
-  ['star','Points','Your points and what they were for, in one place.'],['lang','Remembered for you','Your language and step-free choice, on any phone you sign in on.']];
-const benefitsHTML=()=>`<div class="m-list">${BENEFITS.map(([ic,t,d])=>`<div class="m-row"><i>${IC[ic]}</i><div><b>${T(t)}</b><span>${T(d)}</span></div></div>`).join('')}</div>`;
+const BENEFITS=[['key','Valet from your phone','Call your car before you leave, and collect it when it is ready.'],['car','Find my car','Save where you parked, and get walked back to it.'],
+  ['lock','Members-only offers','Offers from the stores that only members can use.'],['heart','Your stores','Save the stores you like and get to them in one tap.'],
+  ['star','Points','Your points and what they were for, in one place.']];
+const benefitsHTML=()=>`<div class="m-list">${BENEFITS.filter(x=>x[0]!=='key'||valetOn()).map(([ic,t,d])=>`<div class="m-row"><i>${IC[ic]||icn(ic)}</i><div><b>${T(t)}</b><span>${T(d)}</span></div></div>`).join('')}</div>`;
 function prefsHTML(){const sw=(act,on,label,ic)=>`<button class="m-row sw" data-act="${act}" role="switch" aria-checked="${!!on}"><i>${IC[ic]}</i><div><b>${T(label)}</b></div><em></em></button>`;
   return `<div class="m-list"><div class="m-row"><i>${IC.lang}</i><div><b>${T('Language')}</b></div><div class="seg" role="group"><button data-setlang="en" aria-pressed="${LANG==='en'}" lang="en">English</button><button data-setlang="hi" aria-pressed="${LANG==='hi'}" lang="hi">हिन्दी</button></div></div>
     ${sw('stepfree',state.stepFree,'Step-free routes','access')}${typeof Voice!=='undefined'&&Voice.supported?sw('voice',Voice.on,'Spoken directions','sound'):''}${sw('mode',MODE==='evening','Evening map','clock')}
@@ -110,8 +117,7 @@ function accountHTML(){const m=Member.me;
   const favs=(m.favs||[]).filter(isBrand),mo=memberOffers(),log=m.log||[];
   return `<div class="m-hello"><b class="avatar big">${escapeHtml((firstName()||'M')[0].toUpperCase())}</b><div><small>${T('Hello')}</small><b>${escapeHtml(firstName()||T('Member'))}</b></div></div>
     ${memberCardHTML()}
-    <div class="m-actions"><button data-act="showcard"><i>${IC.user}</i><span>${T('Show card')}</span></button><button data-act="car"><i>${IC.car}</i><span>${T('Find my car')}</span></button><button data-act="favs"><i>${IC.heart}</i><span>${T('Saved stores')}</span><em>${favs.length||''}</em></button></div>
-    <div class="sec-title"><h3>${T('Your car')}</h3></div>${carCardHTML()}
+    <div class="m-actions"><button data-act="showcard"><i>${IC.user}</i><span>${T('Show card')}</span></button><button data-act="svc"><i>${IC.car}</i><span>${T(valetOn()?'Parking & valet':'Parking')}</span></button><button data-act="favs"><i>${IC.heart}</i><span>${T('Saved stores')}</span><em>${favs.length||''}</em></button></div>
     ${mo.length?`<div class="sec-title"><h3>${T('Just for members')}</h3></div>${mo.map(offerCardHTML).join('')}`:''}
     <div class="sec-title" id="mFavs"><h3>${T('Your stores')}</h3></div>${favs.length?favs.map(b=>itemHTML(b)).join(''):`<p class="empty">${T('Tap the heart on any store to keep it here.')}</p>`}
     <div class="sec-title"><h3>${T('Points')}</h3></div>${log.length?`<div class="m-list">${log.map(l=>`<div class="m-row"><i class="${l.points<0?'neg':'pos'}">${l.points>0?'+':''}${l.points}</i><div><b>${escapeHtml(l.note||T(l.points<0?'Points used':'Points added'))}</b><span>${escapeHtml(new Date(l.at).toLocaleDateString(locale(),{day:'numeric',month:'short',year:'numeric'}))}</span></div></div>`).join('')}</div>`:`<p class="empty">${T('Points the mall adds for you will show here.')}</p>`}
@@ -125,14 +131,15 @@ function signInSheet(why){if(!Member.can){toast(T('Membership needs a connection
   const m=modal('<div class="sheet-body"></div>');m.classList.add('sheet');const box=m.querySelector('.sheet-body');
   const err=t=>{const e=box.querySelector('.m-err');if(e){e.textContent=t||'';e.hidden=!t;}};
   const busy=(b,on)=>{b.disabled=on;b.classList.toggle('busy',on);};
-  const stepPhone=()=>{box.innerHTML=`<h3>${T(why||'Sign in or join')}</h3><p class="note">${T('Enter your mobile number. We will text you a 6-digit code.')}</p>
+  const head=(ic,n)=>`<button class="sheet-x" data-close aria-label="${T('Close')}">${IC.plus}</button><i class="sheet-ic">${ic}</i><div class="sheet-dots" aria-hidden="true">${[1,2,3].map(k=>`<span class="${k<=n?'on':''}"></span>`).join('')}</div>`;
+  const stepPhone=()=>{box.innerHTML=`${head(icn('user'),1)}<h3>${T(why||'Sign in or join')}</h3><p class="note">${T('Enter your mobile number. We will text you a 6-digit code.')}</p>
       <label class="m-field"><span>+91</span><input id="mPhone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="12" placeholder="98765 43210" aria-label="${T('Mobile number')}"></label>
-      <p class="m-err" role="alert" hidden></p><button class="btn gold wide" id="mGo">${T('Send code')}</button><p class="note small">${T('Your number is used only to sign you in.')}</p><button class="linkbtn" data-close>${T('Not now')}</button>`;
+      <p class="m-err" role="alert" hidden></p><button class="btn gold wide" id="mGo">${T('Send code')}</button><p class="note small">${T('Your number is used only to sign you in.')}</p>`;
     const inp=box.querySelector('#mPhone'),go=box.querySelector('#mGo');inp.value=phone;setTimeout(()=>inp.focus(),60);
     const send=async()=>{phone=inp.value;if(phone.replace(/\D/g,'').length<10){err(T('Enter a 10-digit mobile number.'));return;}err('');busy(go,true);
       try{const j=await Member.call('start','POST',{phone});stepCode(j.demo?j.code:null);}catch(e){err(e.message);busy(go,false);}};
     go.onclick=send;inp.onkeydown=e=>{if(e.key==='Enter')send();};};
-  const stepCode=demo=>{box.innerHTML=`<h3>${T('Enter the code')}</h3><p class="note">${T('Sent to +91 {n}',{n:escapeHtml(phone.replace(/\D/g,'').slice(-10).replace(/(\d{5})(\d{5})/,'$1 $2'))})}</p>
+  const stepCode=demo=>{box.innerHTML=`${head(IC.lock,2)}<h3>${T('Enter the code')}</h3><p class="note">${T('Sent to +91 {n}',{n:escapeHtml(phone.replace(/\D/g,'').slice(-10).replace(/(\d{5})(\d{5})/,'$1 $2'))})}</p>
       ${demo?`<div class="m-demo"><b>${T('Demo mode')}</b> ${T('No SMS service is connected yet, so here is your code:')} <strong>${demo}</strong></div>`:''}
       <input id="mCode" class="m-codein" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" aria-label="${T('6-digit code')}">
       <p class="m-err" role="alert" hidden></p><button class="btn gold wide" id="mOk">${T('Sign in')}</button><button class="linkbtn" id="mBack">${T('Use a different number')}</button>`;
@@ -142,7 +149,7 @@ function signInSheet(why){if(!Member.can){toast(T('Membership needs a connection
         if(j.isNew||!j.member.name)stepName(true);else{m.remove();toast(T('Welcome back, {name}',{name:firstName()||T('Member')}));goAccount();}}
       catch(e){err(e.message);busy(ok,false);inp.select();}};
     ok.onclick=verify;inp.oninput=()=>{inp.value=inp.value.replace(/\D/g,'').slice(0,6);if(inp.value.length===6)verify();};box.querySelector('#mBack').onclick=stepPhone;};
-  const stepName=isNew=>{box.innerHTML=`<h3>${T(isNew?'Welcome! What is your name?':'Your name')}</h3><p class="note">${T('It goes on your member card.')}</p>
+  const stepName=isNew=>{box.innerHTML=`${head(IC.check,3)}<h3>${T(isNew?'Welcome! What is your name?':'Your name')}</h3><p class="note">${T('It goes on your member card.')}</p>
       <label class="m-field"><input id="mName" type="text" autocomplete="name" maxlength="40" aria-label="${T('Your name')}" value="${escapeHtml((Member.me&&Member.me.name)||'')}"></label>
       <p class="m-err" role="alert" hidden></p><button class="btn gold wide" id="mSave">${T('Save')}</button>${isNew?`<button class="linkbtn" data-close>${T('Skip for now')}</button>`:''}`;
     const inp=box.querySelector('#mName'),sv=box.querySelector('#mSave');setTimeout(()=>inp.focus(),60);
@@ -191,3 +198,41 @@ function parkFromLink(){let v=QS.get('park');try{v=v||sessionStorage.getItem('ir
   try{sessionStorage.removeItem('ireo.park');}catch(e){}
   const level=m[1].toUpperCase(),spot=m[2].trim().toUpperCase();Member.save({car:{level,spot,note:''}});toast(T('Parking spot saved: {level} · {spot}',{level,spot}),4200);}
 
+/* ---------------- valet (members only) ----------------
+   The member types the number on the ticket the valet gave them, then asks for the car from the phone. The valet desk
+   sees the request in the admin hub (Valet desk) and marks the car ready; the member's app shows it within seconds.
+   member.valet = {ticket, status: parked | requested | ready, at}. Admin -> Settings -> Parking switches valet off. */
+const valetOn=()=>(INFO.settings.parking||{}).valet!==false;
+function valetCardHTML(){const v=Member.on&&Member.me.valet;
+  if(!v)return `<button class="m-park" data-act="valet"><i>${icn('key')}</i><div><b>${T('Using the valet?')}</b><span>${T('Add your ticket, and call your car from your phone.')}</span></div>${IC.chev}</button>`;
+  const st={parked:['With the valet','Call your car a few minutes before you leave.'],requested:['Your car is on its way','We will tell you here when it is at the valet desk.'],ready:['Your car is ready','Please collect it at the valet desk.']}[v.status]||['',''];
+  const n={parked:1,requested:2,ready:3}[v.status]||1;
+  return `<div class="m-car valet ${v.status}"><div class="m-car-top"><i>${icn('key')}</i><div><small>${T('Valet ticket {n}',{n:escapeHtml(v.ticket)})}</small><b>${T(st[0])}</b><span>${T(st[1])}</span></div></div>
+    <div class="v-steps" aria-hidden="true">${['Parked','Called','Ready'].map((t,i)=>`<span class="${i<n?'on':''}"><i></i>${T(t)}</span>`).join('')}</div>
+    ${v.status==='requested'&&DBKIND!=='server'?`<p class="note small">${T('Demo: no valet desk is connected, so the car shows as ready in a few seconds.')}</p>`:''}
+    <div class="m-car-btns">${v.status==='parked'?`<button class="btn gold" data-act="valetask">${icn('key')}<span>${T('Bring my car')}</span></button><button class="btn" data-act="valet">${T('Change ticket')}</button><button class="btn" data-act="valetdone">${T('Remove')}</button>`
+      :v.status==='requested'?`<button class="btn" data-act="valetcancel" style="grid-column:1/-1">${T('Cancel the request')}</button>`
+      :`<button class="btn gold" data-act="valetdone">${T('I have my car')}</button>`}</div></div>`;}
+function valetSend(body,local){if(!Member.on)return;if(local&&Member.me.valet)Object.assign(Member.me.valet,local,{at:new Date().toISOString()});memberChanged();
+  Member.call('me','PUT',{valet:body}).then(j=>{Member.me=j.member;memberChanged();if(body.request&&DBKIND!=='server')setTimeout(()=>Member.load(),13000);}).catch(e=>{toast(e.message);Member.load();});}
+function valetSheet(){if(!Member.on){signInSheet('Sign in to use the valet from your phone');return;}
+  if(document.querySelector('.modal.sheet'))return;const v=Member.me.valet||{};
+  const m=modal(`<div class="sheet-body"><button class="sheet-x" data-close aria-label="${T('Close')}">${IC.plus}</button><i class="sheet-ic">${icn('key')}</i><h3>${T('Your valet ticket')}</h3><p class="note">${T('Enter the number on the ticket the valet gave you.')}</p>
+    <label class="m-field"><span>#</span><input id="vtNo" maxlength="10" autocapitalize="characters" autocomplete="off" placeholder="${T('e.g. 1042')}" aria-label="${T('Valet ticket number')}" value="${escapeHtml(v.ticket||'')}"></label>
+    <p class="m-err" role="alert" hidden></p><button class="btn gold wide" id="vtSave">${T('Save my ticket')}</button></div>`);
+  m.classList.add('sheet');const inp=m.querySelector('#vtNo');setTimeout(()=>inp.focus(),60);
+  const save=()=>{const t=inp.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');if(!t){const e=m.querySelector('.m-err');e.textContent=T('Enter the number on your valet ticket.');e.hidden=false;return;}
+    m.remove();Member.me.valet={ticket:t,status:'parked',at:new Date().toISOString()};valetSend({ticket:t});toast(T('Valet ticket saved'));};
+  m.querySelector('#vtSave').onclick=save;inp.onkeydown=e=>{if(e.key==='Enter')save();};}
+
+/* ---------------- the Services tab: parking, valet and the mall's facilities in one place ---------------- */
+function servicesHTML(){const row=(act,ic,t,d)=>`<button class="m-row" data-act="${act}"><i>${icn(ic)}</i><div><b>${T(t)}</b>${d?`<span>${d}</span>`:''}</div>${IC.chev}</button>`;
+  const n=(INFO.settings.mall||{}).helpDesk;
+  return `<div class="p-page"><h2>${T('Services')}</h2><p>${T('Parking and everything else you may need at {venue}',{venue:venueName()})}</p></div>
+    <div class="sec-title"><h3>${T('Parking')}</h3>${Member.on?'':`<span class="memtag">${IC.star}${T('Members')}</span>`}</div>
+    <div class="svc-stack">${carCardHTML()}${valetOn()?valetCardHTML():''}</div>
+    <div class="sec-title"><h3>${T('Around the mall')}</h3></div>
+    <div class="m-list">${row('wc','wc','Toilets',T('The nearest one, with the way there'))}${row('lift','lift','Lifts',T('The nearest lift'))}${row('exit','exit','Exit',T('The way out to the main entrance'))}
+      <button class="m-row sw" data-act="stepfree" role="switch" aria-checked="${!!state.stepFree}"><i>${icn('access')}</i><div><b>${T('Step-free routes')}</b><span>${T('Lifts only, no escalators')}</span></div><em></em></button>
+      ${row('help','help','Help desk',n?escapeHtml(n):T('Ask the concierge'))}</div>
+    ${mallHours()?`<p class="m-id">${T('Open today {hours}',{hours:escapeHtml(mallHours())})}</p>`:''}`;}

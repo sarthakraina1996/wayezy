@@ -54,7 +54,7 @@ function adminNav(){const u=me();
   if(isPortal()){const b=u.store,food=b&&BRANDS[b]&&BRANDS[b].cat==='food';
     return [['overview','Dashboard','dash'],['stores','My store','store'],['myads','My kiosk ads','ads'],...(food&&can('rest.wait',b)?[['waits','Wait time','clock']]:[]),['offers','Offers','offer']];}
   return [['overview','Overview','dash'],['stores','Stores','store'],...(can('mall.ads')?[['ads','Ads & slots','ads'],['kiosks','Kiosks','kiosk']]:[]),['waits','Wait times','clock'],['offers','Offers & promotions','offer'],['events','Events','cal'],
-    ...(can('mall.users')&&DBKIND==='server'?[['members','Members','user']]:[]),...(can('mall.users')?[['users','Users & permissions','users']]:[]),...(can('mall.settings')?[['settings','Settings','gear']]:[])];}
+    ...(can('mall.users')&&DBKIND==='server'?[['members','Members','user'],...((INFO.settings.parking||{}).valet!==false?[['valet','Valet desk','key']]:[])]:[]),...(can('mall.users')?[['users','Users & permissions','users']]:[]),...(can('mall.settings')?[['settings','Settings','gear']]:[])];}
 const STORE_PORTAL_ICONS={
   overview: `
     <rect x="3" y="3" width="7" height="11" rx="1.5"/>
@@ -83,12 +83,11 @@ function adPendingCount(){return Object.values(INFO.adcreatives).filter(c=>c.sta
 function renderAdmin(){
   const el=document.getElementById('admin');if(needsSignIn()){if(!el.querySelector('#aLogin'))renderSignIn(el);return;}
   const u=me();const role=ROLES()[u.role]||{name:'—'};
-  const portal=isPortal();
   const nav=adminNav();if(!nav.some(n=>n[0]===ASEC))ASEC='overview';
   const pend=pendingCount(),adp=adPendingCount();
   el.classList.toggle('rail',ARAIL);
-  el.innerHTML=`<aside class="a-side"><div class="a-brand"><img src="${LOGO_G}" alt="Wayezy"><button class="a-railbtn" id="aRail" aria-expanded="${!ARAIL}" aria-label="${ARAIL?'Open the menu':'Fold the menu to icons'}" title="${ARAIL?'Open the menu':'Fold the menu to icons'}">${icn('menu')}</button></div><div class="sub">${portal?'STORE PORTAL':'ADMIN HUB'}</div>
-    ${nav.map(([k,t,i])=>`<button data-sec="${k}" aria-pressed="${ASEC===k}" title="${escapeHtml(t)}">${portal?storePortalIcon(k):icn(i)}<span class="lbl">${t}</span>${k==='offers'&&pend&&can('mall.approve')?`<span class="n">${pend}</span>`:''}${k==='ads'&&adp?`<span class="n">${adp}</span>`:''}</button>`).join('')}
+  el.innerHTML=`<aside class="a-side"><div class="a-brand"><img src="${LOGO_G}" alt="Wayezy"><button class="a-railbtn" id="aRail" aria-expanded="${!ARAIL}" aria-label="${ARAIL?'Open the menu':'Fold the menu to icons'}" title="${ARAIL?'Open the menu':'Fold the menu to icons'}">${icn('menu')}</button></div><div class="sub">${isPortal()?'STORE PORTAL':'ADMIN HUB'}</div>
+    ${nav.map(([k,t,i])=>`<button data-sec="${k}" aria-pressed="${ASEC===k}" title="${escapeHtml(t)}">${isPortal()?storePortalIcon(k):icn(i)}<span class="lbl">${t}</span>${k==='offers'&&pend&&can('mall.approve')?`<span class="n">${pend}</span>`:''}${k==='ads'&&adp?`<span class="n">${adp}</span>`:''}</button>`).join('')}
     <div class="foot">${{live:'● Live — changes reach every kiosk and phone instantly',offline:'○ Reconnecting to the server…',device:'● Saved on this device — kiosk and app tabs in this browser stay in sync',screen:'○ This browser blocks storage — changes last until the page reloads'}[dbLabel()]||'○ Connecting…'}${DBKIND==='server'&&DB&&DB.auth?' <button class="linkbtn" id="aSignOut">Sign out</button>':''}</div></aside>
     <main class="a-main" id="aMain"><div class="a-top"><h1>${escapeHtml(nav.find(n=>n[0]===ASEC)[1])}</h1>
     <div class="a-user"><span class="chip">${escapeHtml(role.name)}${u.store&&BRANDS[u.store]?' · '+escapeHtml(BRANDS[u.store].name):''}</span><select id="aUserSel" aria-label="Signed in as">${Object.entries(USERS()).map(([id,x])=>`<option value="${id}" ${id===AUSER?'selected':''}>${escapeHtml(x.name)}</option>`).join('')}</select></div></div>
@@ -99,7 +98,7 @@ function renderAdmin(){
   const so=el.querySelector('#aSignOut');if(so)so.onclick=()=>{DB.logout();renderAdmin();};
   el.querySelector('#aUserSel').onchange=e=>{AUSER=e.target.value;try{localStorage.setItem('ireo.admin.user',AUSER);}catch(_){ }ASEC='overview';AEDIT=null;ADSTORE=null;ADDRAFT=null;renderAdmin();};
   const body=el.querySelector('#aBody');
-  ({overview:aOverview,stores:aStores,ads:aAds,kiosks:aKiosks,myads:aMyAds,waits:aWaits,offers:aOffers,events:aEvents,members:aMembers,users:aUsers,settings:aSettings}[ASEC]||aOverview)(body);
+  ({overview:aOverview,stores:aStores,ads:aAds,kiosks:aKiosks,myads:aMyAds,waits:aWaits,offers:aOffers,events:aEvents,members:aMembers,valet:aValet,users:aUsers,settings:aSettings}[ASEC]||aOverview)(body);
 }
 function myBrands(){return Object.keys(BRANDS).filter(b=>floorsOfBrand(b).length&&inScope(b)).sort((a,b)=>BRANDS[a].name.localeCompare(BRANDS[b].name));}
 function waitCell(b){const w=waitView(b,true);const wo=waitOf(b);if(!w)return '<span class="chip grey">Not set</span>';return `<span class="chip ${w.cls==='ok'?'ok':w.cls==='grey'?'grey':'warn'}">${w.t}</span> <small class="note">${wo&&wo.updatedAt?ago(wo.updatedAt):''}</small>`;}
@@ -244,6 +243,7 @@ function aSettings(el){const m=INFO.settings.mall||{};
    <label class="fld">Basement levels, top to bottom (comma separated)<input id="pkL" value="${escapeHtml((parkingConf().levels).join(', '))}" placeholder="e.g. B1, B2"></label>
    <div class="fld">Lifts that go down to parking<div class="linkrow" style="flex-wrap:wrap;gap:14px;margin-top:6px">${CONNECTORS.filter(c=>c.type==='lift').map(c=>`<label class="check"><input type="checkbox" data-pklift="${c.id}" ${parkingConf().lifts.includes(c.id)?'checked':''}> ${escapeHtml(c.name)}</label>`).join('')}</div></div>
    <p class="note">To save a spot in one go, put a QR code on each pillar that opens the app at <code>${escapeHtml(m.appUrl||location.origin+location.pathname)}?view=app&amp;park=B1-P23</code> (level, a dash, then the pillar). Any QR code maker can make them.</p>
+   <label class="check"><input type="checkbox" id="pkValet" ${(INFO.settings.parking||{}).valet===false?'':'checked'}> Valet parking: members add their valet ticket in the app and call their car; requests show in Valet desk</label>
    <button class="btn gold" id="pkSave">Save</button></div>
   <div class="panel"><h2>Kiosks</h2><p class="note">Each kiosk opens this page with its own position and facing direction, so “You are here” and the map rotation are right for where it stands. Add these to the kiosk's link:</p>
   <table><tr><th>Setting</th><th>Example</th><th>What it does</th></tr><tr><td>Position</td><td><code>?at=G,374,699</code></td><td>Floor and map position of the kiosk</td></tr><tr><td>Facing</td><td><code>&heading=90</code></td><td>Turns the map so the view ahead is at the top</td></tr><tr><td>Lock</td><td><code>&lock=1</code></td><td>Hides the demo view switcher on public screens</td></tr><tr><td>Quality</td><td><code>&quality=low</code></td><td>For less powerful kiosk hardware</td></tr><tr><td>2D map</td><td><code>&map=2d</code></td><td>Flat floor plan for screens without 3D graphics (also used automatically)</td></tr><tr><td>Idle</td><td><code>&idle=120</code></td><td>Seconds before the kiosk resets and plays the attract film</td></tr><tr><td>Attract film</td><td><code>&attract=0</code></td><td>Turns the idle film off</td></tr></table></div>
@@ -258,7 +258,7 @@ function aSettings(el){const m=INFO.settings.mall||{};
   const thOff=el.querySelector('#thOff');if(thOff)thOff.onclick=async()=>{await saveDoc('settings','theme',{key:'standard',greet:'',until:''});aSettings(el);};
   el.querySelector('#pkSave').onclick=()=>{const levels=el.querySelector('#pkL').value.split(',').map(s=>s.trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)).filter(Boolean).slice(0,6);
     const lifts=[...el.querySelectorAll('[data-pklift]')].filter(x=>x.checked).map(x=>x.dataset.pklift);if(!levels.length){toast('Add at least one level');return;}if(!lifts.length){toast('Tick at least one lift');return;}
-    saveDoc('settings','parking',{levels,lifts});};
+    saveDoc('settings','parking',{levels,lifts,valet:el.querySelector('#pkValet').checked});};
   const ec=el.querySelector('#sErrClear');if(ec)ec.onclick=()=>{clearErrors();aSettings(el);};
   el.querySelector('#sClear').onclick=()=>modal(`<h3>Remove sample data?</h3><p class="note">This removes every offer, wait time, special, promotion, event, user, kiosk, ad airtime and ad marked “sample”. Anything your team added stays.</p><div class="linkrow" style="justify-content:flex-end"><button class="btn" data-close>Cancel</button><button class="btn gold" id="mConfirm">Remove</button></div>`)
     .querySelector('#mConfirm').onclick=async e=>{e.target.closest('.modal').remove();let n=0;
@@ -299,3 +299,24 @@ async function aMembers(el){el.innerHTML='<div class="panel"><p class="note">Loa
     try{await adminFetch('api/members/points','POST',{id,points:pts,note,by:me().name});toast(pts>0?pts+' points added':Math.abs(pts)+' points taken');aMembers(el);}catch(e){toast(e.message);b.disabled=false;}});
   el.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{const m=list.find(x=>x.id===b.dataset.rm);confirmBox(`Remove ${m.name||'this member'}?`,'Their membership, points and saved stores are deleted. This cannot be undone.','Remove member',async()=>{try{await adminFetch('api/members/'+m.id,'DELETE');toast('Member removed');}catch(e){toast(e.message);}aMembers(el);});});
 }
+
+/* ---------------- the valet desk ----------------
+   Members add their valet ticket in the phone app and ask for their car. The desk sees the requests here (refreshed
+   every few seconds), taps "Car is ready" when it is at the desk (the member's app says so), then "Handed over". */
+let VALET_T=null;
+async function aValet(el,quiet){clearTimeout(VALET_T);if(!quiet)el.innerHTML='<div class="panel"><p class="note">Loading the valet desk…</p></div>';let data;
+  try{data=await adminFetch('api/members');}catch(e){if(!quiet)el.innerHTML=`<div class="panel"><p class="note">The valet desk could not be loaded: ${escapeHtml(e.message)}</p></div>`;return;}
+  if(ASEC!=='valet'||!el.isConnected)return;
+  const rank={requested:0,ready:1,parked:2},list=data.members.filter(m=>m.valet).sort((a,b)=>(rank[a.valet.status]-rank[b.valet.status])||a.valet.at.localeCompare(b.valet.at));
+  const n=st=>list.filter(m=>m.valet.status===st).length;
+  const chip={requested:'<span class="chip warn">Wants the car</span>',ready:'<span class="chip ok">Ready at the desk</span>',parked:'<span class="chip grey">Parked</span>'};
+  el.innerHTML=`<div class="a-grid"><div class="kpi"><small>Waiting for their car</small><b>${n('requested')}</b></div><div class="kpi"><small>Ready at the desk</small><b>${n('ready')}</b></div><div class="kpi"><small>Parked with the valet</small><b>${n('parked')}</b></div></div>
+   <div class="panel"><h2>Valet tickets</h2>${list.length?`<div class="tscroll"><table><tr><th>Ticket</th><th>Member</th><th>Mobile</th><th>Status</th><th>Since</th><th></th></tr>
+   ${list.map(m=>`<tr><td><b>${escapeHtml(m.valet.ticket)}</b></td><td>${escapeHtml(m.name||'(no name yet)')}</td><td>${escapeHtml(m.phone)}</td><td>${chip[m.valet.status]||''}</td><td>${escapeHtml(ago(m.valet.at))}</td>
+     <td style="text-align:right;white-space:nowrap">${m.valet.status==='requested'?`<button class="btn sm gold" data-vready="${m.id}">Car is ready</button> `:''}<button class="btn sm" data-vdone="${m.id}">${m.valet.status==='ready'?'Handed over':'Remove'}</button></td></tr>`).join('')}</table></div>`
+    :'<p class="note">No valet tickets yet. Members add their ticket in the phone app (Services → Parking), then call their car from there.</p>'}</div>
+   <div class="panel"><h2>How it works</h2><p class="note">The valet gives the guest a ticket as usual. A member types its number into the app and taps “Bring my car” when they are ready to leave; the request appears here within a few seconds. Tap “Car is ready” when the car is at the desk (the member's phone shows it), and “Handed over” once they have it. Switch valet off in Settings → Parking.</p></div>`;
+  const send=async(id,status)=>{try{await adminFetch('api/members/valet','POST',{id,status});}catch(e){toast(e.message);}aValet(el,true);};
+  el.querySelectorAll('[data-vready]').forEach(b=>b.onclick=()=>send(b.dataset.vready,'ready'));
+  el.querySelectorAll('[data-vdone]').forEach(b=>b.onclick=()=>send(b.dataset.vdone,'done'));
+  VALET_T=setTimeout(()=>{if(ASEC==='valet'&&VIEW==='admin'&&el.isConnected)aValet(el,true);},6000);}

@@ -16,14 +16,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=8.5.2">
-<link rel="stylesheet" href="css/photos.css?v=8.5.2">
-<script src="js/errors.js?v=8.5.2"></script>
+<link rel="stylesheet" href="styles.css?v=8.6.0">
+<link rel="stylesheet" href="css/photos.css?v=8.6.0">
+<script src="js/errors.js?v=8.6.0"></script>
 </head>
 <body class="view-kiosk">
 <!-- the Wayezy intro (js/intro.js): over everything from the first paint -->
 <div id="intro" aria-hidden="true"><div class="iz-glow"></div><div class="iz-streaks"></div><div class="iz-bars"><i></i><i></i><i></i><i></i></div><div class="iz-logo"><img src="media/wayezy-mark.png" alt="Wayezy" fetchpriority="high"><span class="iz-tag">Find <b>·</b> Explore <b>·</b> Enjoy</span></div><div class="iz-white"></div><audio preload="auto" src="media/intro.aac"></audio><button type="button" data-i18n="Skip" data-i18n-aria="Skip the intro" aria-label="Skip the intro">Skip</button></div>
-<script src="js/intro.js?v=8.5.2"></script>
+<script src="js/intro.js?v=8.6.0"></script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <symbol id="i-lift" viewBox="0 0 24 24"><g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-4 4-4-4" />
   <path d="M17 20V4" />
@@ -81,11 +81,11 @@
     <div class="p-scroll" id="pScroll">
       <div class="p-search"><label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><input id="pq" type="search" placeholder="Search stores, food or services" data-i18n-ph="Search stores, food or services" aria-label="Search" data-i18n-aria="Search"></label></div>
       <div class="p-chips" id="pChips"></div>
-      <div id="pGreet"></div>
       <div id="pDest"></div>
       <div class="p-maptitle" id="pMapTitle"><h3 data-i18n>Explore the mall</h3><span data-i18n>Tap any shop</span></div>
       <div class="p-mapbox" id="pMapBox"><button class="p-back" id="pBack" aria-label="Back" data-i18n-aria="Back"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7" />
   <path d="M19 12H5" /></svg><span id="pBackTxt">Map</span></button><button class="p-expand" id="pExpand" aria-label="Expand map" data-i18n-aria="Expand map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button><div class="p-floorsel" id="pFloorSel"></div></div>
+      <div id="pGreet"></div>
       <div id="pSteps"></div>
       <div id="pList"></div>
     </div>
@@ -146,31 +146,31 @@
 </div>
 
 <!-- three.js r147 is loaded by mapview.js: vendor/ first (offline kiosks), then the CDN. If neither loads, the 2D map is used. -->
-<script src="js/data.js?v=8.5.2"></script>
-<script src="js/assets.js?v=8.5.2"></script>
-<script src="js/motion.js?v=8.5.2"></script>
-<script src="js/engine.js?v=8.5.2"></script>
-<script src="js/i18n.js?v=8.5.2"></script>
-<script src="js/qr.js?v=8.5.2"></script>
-<script src="js/locate.js?v=8.5.2"></script>
-<script src="js/beacons.js?v=8.5.2" onerror="this.remove()"></script>
-<script src="js/datastore.js?v=8.5.2"></script>
-<script src="js/adsched.js?v=8.5.2"></script>
-<script src="js/shade.js?v=8.5.2" onerror="this.remove()"></script>
-<script src="js/decor.js?v=8.5.2" onerror="this.remove()"></script>
-<script src="js/water.js?v=8.5.2" onerror="this.remove()"></script>
-<script src="js/map3d.js?v=8.5.2"></script>
-<script src="js/map2d.js?v=8.5.2"></script>
-<script src="js/mapview.js?v=8.5.2"></script>
-<script src="js/festive.js?v=8.5.2"></script>
-<script src="js/ui.js?v=8.5.2"></script>
-<script src="js/member.js?v=8.5.2"></script>
-<script src="js/voice.js?v=8.5.2"></script>
-<script src="js/routemode.js?v=8.5.2"></script>
-<script src="js/adplayer.js?v=8.5.2"></script>
-<script src="js/livepos.js?v=8.5.2"></script>
-<script src="js/admin.js?v=8.5.2.1"></script>
-<script src="js/adadmin.js?v=8.5.2"></script>
-<script src="js/boot.js?v=8.5.2"></script>
+<script src="js/data.js?v=8.6.0"></script>
+<script src="js/assets.js?v=8.6.0"></script>
+<script src="js/motion.js?v=8.6.0"></script>
+<script src="js/engine.js?v=8.6.0"></script>
+<script src="js/i18n.js?v=8.6.0"></script>
+<script src="js/qr.js?v=8.6.0"></script>
+<script src="js/locate.js?v=8.6.0"></script>
+<script src="js/beacons.js?v=8.6.0" onerror="this.remove()"></script>
+<script src="js/datastore.js?v=8.6.0"></script>
+<script src="js/adsched.js?v=8.6.0"></script>
+<script src="js/shade.js?v=8.6.0" onerror="this.remove()"></script>
+<script src="js/decor.js?v=8.6.0" onerror="this.remove()"></script>
+<script src="js/water.js?v=8.6.0" onerror="this.remove()"></script>
+<script src="js/map3d.js?v=8.6.0"></script>
+<script src="js/map2d.js?v=8.6.0"></script>
+<script src="js/mapview.js?v=8.6.0"></script>
+<script src="js/festive.js?v=8.6.0"></script>
+<script src="js/ui.js?v=8.6.0"></script>
+<script src="js/member.js?v=8.6.0"></script>
+<script src="js/voice.js?v=8.6.0"></script>
+<script src="js/routemode.js?v=8.6.0"></script>
+<script src="js/adplayer.js?v=8.6.0"></script>
+<script src="js/livepos.js?v=8.6.0"></script>
+<script src="js/admin.js?v=8.6.0"></script>
+<script src="js/adadmin.js?v=8.6.0"></script>
+<script src="js/boot.js?v=8.6.0"></script>
 </body>
 </html>
