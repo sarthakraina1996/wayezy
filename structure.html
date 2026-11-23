@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="How the Wayezy wayfinding app is built: every file by layer and importance, with journeys you can play through the code.">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Wayezy Project Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: layered "stack" of the app, top = what people touch, bottom = server; detail panel beside it; flows light the path through the stack. */
+:root{
+  --bg:#F5F6FA; --panel:#FFFFFF; --ink:#1E2551; --ink2:#4A5079; --mute:#7C82A6; --line:#DDE0EC; --soft:#ECEEF6;
+  --red:#E8413B; --navy:#1E2551;
+  --t-core:#E8413B; --t-imp:#2F55D4; --t-pol:#0E9F8E; --t-gen:#8A6FD1; --t-dor:#9AA0B8; --t-ws:#C98A12;
+  --hl:#FFD84D;
+  --display:'Poppins',ui-sans-serif,system-ui,sans-serif; --body:'Poppins',ui-sans-serif,system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12152E; --panel:#1B1F3E; --ink:#EEF0FA; --ink2:#C3C7DE; --mute:#8D92B3; --line:#2E3360; --soft:#232852;
+  --t-core:#FF6A63; --t-imp:#6F8DFF; --t-pol:#3CCBB8; --t-gen:#AE97F2; --t-dor:#6E7493; --t-ws:#E8AE3A; --hl:#FFD84D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12152E; --panel:#1B1F3E; --ink:#EEF0FA; --ink2:#C3C7DE; --mute:#8D92B3; --line:#2E3360; --soft:#232852;
+  --t-core:#FF6A63; --t-imp:#6F8DFF; --t-pol:#3CCBB8; --t-gen:#AE97F2; --t-dor:#6E7493; --t-ws:#E8AE3A; --hl:#FFD84D; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:clamp(24px,3.4vw,34px);font-weight:700;letter-spacing:-.01em}
+h1 b{color:var(--red)}
+h2{font-size:19px;font-weight:600}
+.lede{color:var(--ink2);max-width:72ch;margin:6px 0 0}
+.mono{font-family:var(--mono)}
+header{display:flex;flex-direction:column;gap:14px}
+.legend{display:flex;flex-wrap:wrap;gap:8px}
+.tier{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  border-radius:999px;padding:5px 12px 5px 9px;font:500 12.5px var(--body);cursor:pointer}
+.tier i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.tier[aria-pressed="false"]{opacity:.45}
+.tier:focus-visible,.chip:focus-visible,.flowbtn:focus-visible,.ctl:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.tier small{color:var(--mute);font-weight:400}
+
+/* flow bar */
+.flows{display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.flowtop{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.flowtop .lbl{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-right:4px}
+.flowbtn{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 11px;font:500 13px var(--body);cursor:pointer}
+.flowbtn[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+:root[data-theme="dark"] .flowbtn[aria-pressed="true"]{background:var(--red);border-color:var(--red)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .flowbtn[aria-pressed="true"]{background:var(--red);border-color:var(--red)}}
+.player{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ctl{border:0;background:var(--red);color:#fff;border-radius:8px;padding:7px 14px;font:600 13px var(--body);cursor:pointer}
+.ctl.ghost{background:var(--soft);color:var(--ink)}
+.stepnow{flex:1 1 320px;min-width:0;font-size:14px;color:var(--ink)}
+.stepnow b{color:var(--red);font-family:var(--mono);margin-right:6px}
+.steps{list-style:none;margin:0;padding:0;display:flex;gap:6px;flex-wrap:wrap}
+.steps li{font:500 12px var(--body);padding:4px 9px;border-radius:6px;background:var(--soft);color:var(--ink2);cursor:pointer}
+.steps li.on{background:var(--hl);color:#1E2551}
+.steps li.done{color:var(--mute)}
+
+/* main grid */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:960px){.main{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:10px;min-width:0}
+.layer{display:grid;grid-template-columns:170px minmax(0,1fr);gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+@media (max-width:620px){.layer{grid-template-columns:minmax(0,1fr)}}
+.layer.ws{border-style:dashed}
+.lname h3{font-size:14px;font-weight:600}
+.lname p{margin:2px 0 0;color:var(--mute);font-size:12px;line-height:1.4}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;min-width:0}
+.chip{position:relative;display:flex;flex-direction:column;gap:5px;min-width:118px;max-width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  border-radius:9px;padding:8px 10px 8px 12px;cursor:pointer;transition:opacity .25s,transform .25s,box-shadow .25s,border-color .25s}
+.chip::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
+.chip .n{font:600 12.5px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip .bar{height:3px;border-radius:2px;background:var(--soft);overflow:hidden}
+.chip .bar span{display:block;height:100%;background:var(--c);opacity:.75}
+.chip .kb{font:400 10.5px var(--mono);color:var(--mute)}
+.chip.dor{border-style:dashed}
+.chip.sel{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.chip.dim{opacity:.22}
+.chip.lit{border-color:var(--hl);box-shadow:0 0 0 3px var(--hl);transform:translateY(-2px);opacity:1}
+.chip.past{opacity:.85}
+.chip .badge{position:absolute;top:-8px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--hl);color:#1E2551;font:700 11px var(--mono);display:none;align-items:center;justify-content:center}
+.chip.inflow .badge{display:flex}
+.screens{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:620px){.screens{grid-template-columns:minmax(0,1fr)}}
+.scr{background:var(--navy);color:#fff;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;transition:box-shadow .25s}
+.scr b{font:600 15px var(--display)}
+.scr span{font:400 11.5px var(--mono);opacity:.75}
+.scr p{margin:4px 0 0;font-size:12px;opacity:.85;line-height:1.4}
+.scr.lit{box-shadow:0 0 0 3px var(--hl)}
+.arrow{text-align:center;color:var(--mute);font:500 11px var(--body);letter-spacing:.06em;text-transform:uppercase}
+
+/* detail */
+.detail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (max-width:960px){.detail{position:static}}
+.dtier{display:inline-flex;align-items:center;gap:6px;font:600 11px var(--body);letter-spacing:.07em;text-transform:uppercase;color:var(--c)}
+.dtier i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.detail h2{font-family:var(--mono);font-size:17px;word-break:break-all}
+.detail .path{font:400 11.5px var(--mono);color:var(--mute);margin-top:-8px;word-break:break-all}
+.detail p{margin:0;color:var(--ink2)}
+.kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 10px;font-size:12.5px;border-top:1px solid var(--line);padding-top:12px}
+.kv dt{color:var(--mute);font-weight:500}
+.kv dd{margin:0;color:var(--ink)}
+.meter{display:flex;gap:3px}
+.meter i{flex:1;height:6px;border-radius:3px;background:var(--soft)}
+.meter i.on{background:var(--c)}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.links button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;padding:3px 8px;font:500 11.5px var(--mono);cursor:pointer}
+
+/* bottom sections */
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card > p{margin:0;color:var(--ink2)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--body);letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+td .mono{font-size:12px}
+.weight{display:flex;flex-direction:column;gap:8px}
+.wrow{display:grid;grid-template-columns:120px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:12.5px}
+.wrow .track{height:14px;background:var(--soft);border-radius:4px;overflow:hidden}
+.wrow .track span{display:block;height:100%;background:var(--c)}
+.wrow .v{font-family:var(--mono);color:var(--ink2);text-align:right;font-variant-numeric:tabular-nums}
+.ranks{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.ranks li{display:grid;grid-template-columns:12px minmax(0,1fr);gap:10px}
+.ranks li i{width:10px;height:10px;border-radius:50%;background:var(--c);margin-top:5px}
+.ranks b{font-weight:600}
+.ranks span{color:var(--ink2)}
+.foot{color:var(--mute);font-size:12px}
+@media (prefers-reduced-motion: reduce){.chip,.scr{transition:none}.chip.lit{transform:none}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><b>Wayezy</b>, file by file</h1>
+      <p class="lede">The whole app is one web page (<span class="mono">web/</span>) with three screens, a small server that keeps every screen in step, and a workshop of Blender and test scripts that never ships to visitors. Click any file to see what it does. Pick a journey below and press Play to watch it travel through the code.</p>
+    </div>
+    <div class="legend" id="legend"></div>
+  </header>
+
+  <section class="flows" aria-label="Journeys through the code">
+    <div class="flowtop"><span class="lbl">Journey</span><span id="flowbtns" style="display:contents"></span></div>
+    <div class="player">
+      <button class="ctl" id="play" type="button">Play</button>
+      <button class="ctl ghost" id="prev" type="button" aria-label="Previous step">‹</button>
+      <button class="ctl ghost" id="next" type="button" aria-label="Next step">›</button>
+      <div class="stepnow" id="stepnow" aria-live="polite"></div>
+    </div>
+    <ol class="steps" id="steps"></ol>
+  </section>
+
+  <div class="main">
+    <div class="stack" id="stack"></div>
+    <aside class="detail" id="detail" aria-live="polite"></aside>
+  </div>
+
+  <div class="two">
+    <section class="card">
+      <h2>Where the weight is</h2>
+      <p>About 2.6 MB of JavaScript loads in the browser, but most of it is pictures from Blender written out as code. The logic you actually maintain is a small fraction.</p>
+      <div class="weight" id="weight"></div>
+    </section>
+    <section class="card">
+      <h2>What matters most</h2>
+      <ol class="ranks" id="ranks"></ol>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Your picture, mapped onto Wayezy</h2>
+    <p>The AI-agent template and Wayezy solve different problems, but most of its folders have a direct counterpart here.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>In the picture</th><th>In Wayezy</th><th>Notes</th></tr></thead>
+      <tbody id="maprows"></tbody>
+    </table></div>
+  </section>
+
+  <p class="foot">Read from the Wayezy code on 23 Nov 2026 (script order and cache stamp v8.8.2 from web/index.html, sizes from disk). The Ireo Boulevard edition has the same structure without intro.js, motion.js and festive.js.</p>
+</div>
+
+<script>
+const TIERS={
+  core:{name:'Core',hint:'app breaks without it',c:'--t-core',score:5},
+  imp:{name:'Important',hint:'a main feature',c:'--t-imp',score:4},
+  pol:{name:'Polish',hint:'looks and feel',c:'--t-pol',score:2},
+  gen:{name:'Generated',hint:'made by a script, never edit',c:'--t-gen',score:2},
+  dor:{name:'Dormant',hint:'switched off',c:'--t-dor',score:1},
+  ws:{name:'Workshop',hint:'not shipped to visitors',c:'--t-ws',score:1}
+};
+// kb = size on disk; role/without/edit straight from the project's README and CLAUDE.md
+const M={
+ 'index.html':{t:'core',kb:13,p:'web/index.html',l:'start',d:'The page shell. Loads the stylesheet and the 29 scripts in a fixed order; each link carries ?v=8.8.2 so kiosks fetch new files after a change.',w:'Nothing loads.',e:'Bump ?v= on every link after changing any web file.',u:['boot.js','styles.css']},
+ 'styles.css':{t:'core',kb:112,p:'web/styles.css',l:'start',d:'Every look in the app: kiosk, phone and admin layouts, the navy / red / white theme tokens at the top, Poppins type.',w:'Unstyled page; unusable on a kiosk.',e:'Change colours through the tokens at the top, not per component.',u:['index.html']},
+ 'errors.js':{t:'imp',kb:2,p:'web/js/errors.js',l:'start',d:'Loaded first. Catches every error, keeps a log shown in Admin → Settings, and restarts a locked kiosk that gets stuck.',w:'A crash on a kiosk stays on screen until someone walks over.',e:'Rarely touched.',u:['admin.js']},
+ 'boot.js':{t:'core',kb:1,p:'web/js/boot.js',l:'start',d:'Loaded last. Starts everything and registers sw.js, the offline copy of the app.',w:'The page loads but nothing starts.',e:'Tiny; leave it.',u:['ui.js','mapview.js','datastore.js','sw.js']},
+ 'sw.js':{t:'imp',kb:2,p:'web/sw.js',l:'start',d:'Service worker: keeps an offline copy so a kiosk or an installed phone app still opens if the network drops.',w:'No offline start; everything else works.',e:'Touch only when changing caching.',u:['boot.js']},
+
+ 'ui.js':{t:'core',kb:60,p:'web/js/ui.js',l:'ui',d:'The kiosk panel and the phone app: search box, store cards with live wait times, offers, events, the language buttons, and the idle timer (15 s without a touch → ads → film).',w:'No kiosk and no phone app. Only the admin hub would remain.',e:'Keep kiosk, app and admin on the shared helpers (storeCardHTML, offerCardHTML…). Escape database text with escapeHtml.',u:['engine.js','mapview.js','datastore.js','i18n.js','qr.js','adplayer.js','routemode.js']},
+ 'routemode.js':{t:'imp',kb:12,p:'web/js/routemode.js',l:'ui',d:'"Take me here": full-screen guidance with a step card, the walker moving along the route, spoken steps timed so the walker waits at a corner until the voice finishes.',w:'Routes still draw; no guided walk.',e:'Steps carry leg and at (metres); engine tests check the flow.',u:['mapview.js','voice.js','engine.js']},
+ 'voice.js':{t:'imp',kb:5,p:'web/js/voice.js',l:'ui',d:'Spoken directions in Indian English or Hindi with a sentence queue, so no sentence is cut off. Vibration on phones.',w:'Silent guidance.',e:'Small and stable.',u:['routemode.js']},
+ 'member.js':{t:'imp',kb:28,p:'web/js/member.js',l:'ui',d:'Phone-only members: sign-in with a mobile number and one-time code, member card, members-only offers, saved stores, points, Find my car.',w:'No Account tab; everything else works.',e:'Talks only to /api/member/*. Never invent the mall’s programme.',u:['server.js','ui.js']},
+ 'adplayer.js':{t:'imp',kb:5,p:'web/js/adplayer.js',l:'ui',d:'Plays this kiosk’s ads: a sponsored card in the panel and full-screen ads on the idle screen. Re-plans at every window edge and counts plays.',w:'No ads on kiosks, so no ad revenue.',e:'All timing maths lives in adsched.js, not here.',u:['adsched.js','datastore.js']},
+ 'admin.js':{t:'imp',kb:54,p:'web/js/admin.js',l:'ui',d:'The admin hub: stores, offers, events, users and roles, settings, the store portal for store and restaurant managers.',w:'Data can no longer be changed from a screen.',e:'Stays English for now.',u:['datastore.js','adadmin.js']},
+ 'adadmin.js':{t:'imp',kb:39,p:'web/js/adadmin.js',l:'ui',d:'Ads & slots, Kiosks and Add a store for the master admin; My kiosk ads and the store dashboard for the store portal.',w:'Ads cannot be sold or scheduled.',e:'Uses adsched.js for every “is this slot free” answer.',u:['adsched.js','datastore.js']},
+ 'intro.js':{t:'pol',kb:5,p:'web/js/intro.js',l:'ui',d:'The 3.4 s Wayezy logo intro with sound, when the kiosk or phone app opens and after admin sign-in.',w:'App opens without the logo moment.',e:'Safe to change freely.',u:[]},
+ 'motion.js':{t:'pol',kb:5,p:'web/js/motion.js',l:'ui',d:'The sliding highlight under tabs and chips, colour easing, gentle tab swaps.',w:'Selections jump instead of glide.',e:'Safe to change freely.',u:['ui.js']},
+ 'festive.js':{t:'pol',kb:4,p:'web/js/festive.js',l:'ui',d:'Festival colours and a header greeting, set in Admin → Settings.',w:'No festive looks.',e:'Safe to change freely.',u:['ui.js']},
+
+ 'mapview.js':{t:'core',kb:9,p:'web/js/mapview.js',l:'map',d:'The only door between the screens and the map: setFloor, drawRoute, startGuide. Tries the 3D map and falls back to the 2D plan.',w:'No map at all.',e:'Any new map feature goes through this API, and both renderers implement it.',u:['map3d.js','map2d.js']},
+ 'map3d.js':{t:'core',kb:150,p:'web/js/map3d.js',l:'map',d:'The three.js map: buildings over three floors, glass rails, escalators, fountains and trees, the red route ribbon, the guided walker and its camera, weather, rooftop logo plaques. The largest hand-written file.',w:'Falls back to the flat 2D plan.',e:'Keep in step with map2d.js. Anything added to a floor must hook the floor fade.',u:['decor.js','water.js','shade.js','weather.js','engine.js']},
+ 'map2d.js':{t:'imp',kb:15,p:'web/js/map2d.js',l:'map',d:'A flat SVG floor plan with the same API, used when the device has no WebGL or the 3D map fails.',w:'A device without WebGL shows no map.',e:'Keep in step with map3d.js.',u:['engine.js']},
+ 'weather.js':{t:'pol',kb:7,p:'web/js/weather.js',l:'map',d:'Live weather from Open-Meteo (only the mall’s position is sent) or a fixed look: rain, snow, clouds on the map and a chip in the header.',w:'Map is always clear weather.',e:'wxFromCode is tested.',u:['map3d.js']},
+ 'decor.js':{t:'gen',kb:1142,p:'web/js/decor.js',l:'map',d:'Trees, palms, bushes, lamps, bollards and the gate as one 3D model, plus the fountain layout. Written by blender/make_decor_js.py. The biggest file in the app.',w:'Map uses simpler built-in trees.',e:'Never edit. Change blender/assets.py and rebuild.',u:['map3d.js']},
+ 'water.js':{t:'gen',kb:731,p:'web/js/water.js',l:'map',d:'The pool water: a tiling ocean normal map and the caustics it casts, baked in Blender.',w:'Flat water.',e:'Never edit. bake_water.py + make_water_js.py.',u:['map3d.js']},
+ 'shade.js':{t:'gen',kb:138,p:'web/js/shade.js',l:'map',d:'Baked soft shading images from Blender for the live map.',w:'Flatter lighting.',e:'Never edit. bake_shade.py + make_shade_js.py.',u:['map3d.js']},
+
+ 'engine.js':{t:'core',kb:42,p:'web/js/engine.js',l:'brain',d:'The heart. No screen code at all: the walk graph, Dijkstra routing weighted in seconds, turn-by-turn directions with landmarks in English and Hindi, typo-tolerant search with synonyms, glass-rail and escalator layout.',w:'No search, no routes, no directions.',e:'Must stay pure. Run node tests/engine.test.js after any routing, direction or search change.',u:['data.js','ui.js','map3d.js','map2d.js','routemode.js']},
+ 'adsched.js':{t:'imp',kb:9,p:'web/js/adsched.js',l:'brain',d:'Pure ad-scheduling maths: which ads play on a kiosk now, when the line-up next changes, free airtime, the best free slot, free and paid allowances.',w:'Ad screens and the ad player have nothing to go on.',e:'node tests/adsched.test.js.',u:['adplayer.js','adadmin.js']},
+ 'qr.js':{t:'imp',kb:6,p:'web/js/qr.js',l:'brain',d:'Draws QR codes from scratch (ISO 18004). The kiosk shows one on its home panel and on every route card so the route continues on the visitor’s phone.',w:'No kiosk-to-phone hand-off.',e:'node tests/qr.test.js reads every code back with an independent decoder.',u:['ui.js']},
+ 'i18n.js':{t:'imp',kb:40,p:'web/js/i18n.js',l:'brain',d:'English and Hindi: every visitor-facing word goes through T(), with the Hindi tables, Hindi clock and dates. Brand names are never translated.',w:'English only, and any T() call would fail.',e:'Add the Hindi for every new visitor-facing string.',u:['ui.js','engine.js']},
+ 'locate.js':{t:'dor',kb:8,p:'web/js/locate.js',l:'brain',d:'Live position from Bluetooth beacons. Parked: only runs with ?sim=1.',w:'Nothing today.',e:'Its tests were last changed without a full re-run.',u:['livepos.js']},
+ 'beacons.js':{t:'dor',kb:17,p:'web/js/beacons.js',l:'brain',d:'The beacon layout for the live-position feature (generated). Parked.',w:'Nothing today.',e:'Leave until beacons are installed.',u:['locate.js']},
+ 'livepos.js':{t:'dor',kb:9,p:'web/js/livepos.js',l:'brain',d:'Follows the visitor’s live position along the route. Parked.',w:'Nothing today.',e:'Leave until beacons are installed.',u:['locate.js','engine.js']},
+
+ 'data.js':{t:'core',kb:19,p:'web/js/data.js',l:'data',d:'The mall itself: every unit, lift, escalator, toilet and walkway on three floors, traced from the floor-plan PDFs. Written by data/align_to_pdfs.py.',w:'No mall, nothing to route through.',e:'Never edit by hand. Re-run align_to_pdfs.py, then the engine tests.',u:['engine.js']},
+ 'assets.js':{t:'imp',kb:41,p:'web/js/assets.js',l:'data',d:'Brands, logos, the Lucide icons inlined, and the store photo index.',w:'No logos or icons.',e:'Icons are Lucide (ISC licence).',u:['ui.js']},
+ 'datastore.js':{t:'core',kb:16,p:'web/js/datastore.js',l:'data',d:'Live data: offers, wait times, events, ads, kiosks. Picks ServerDB (streams from server.js, falls back to long polling), the claude.ai database, or LocalDB (one browser only). All three share one tiny API.',w:'Every screen shows only the built-in sample data and nothing updates.',e:'Keep the three adapters on the same API. Treat everything read from it as untrusted.',u:['server.js','ui.js','admin.js','adplayer.js']},
+
+ 'server.js':{t:'core',kb:28,p:'server.js',l:'server',d:'The demo server, Node 18 with no packages. Serves web/, keeps the live data in data/live-db.json, pushes each change to every screen (/api/stream, /api/poll), checks X-Admin-Key on writes (PUT/DELETE /api/db/…), and runs the member API.',w:'The app still opens from disk, but kiosks, phones and admin no longer share data.',e:'node tests/server.test.js. Port 8766 for Wayezy.',u:['live-db.json','members.json','admin-password.txt']},
+ 'live-db.json':{t:'core',kb:0,p:'data/live-db.json',l:'server',d:'The one copy of the live data that the server pushes to every screen. Delete it to start again from the sample data.',w:'Server starts fresh from samples.',e:'Never commit.',u:['server.js']},
+ 'members.json':{t:'imp',kb:0,p:'data/members.json',l:'server',d:'Members’ personal data. Tokens and codes are stored only as hashes and never go into the live stream.',w:'Members must sign up again.',e:'Never commit.',u:['server.js']},
+ 'admin-password.txt':{t:'core',kb:0,p:'data/admin-password.txt',l:'server',d:'The admin password, or ADMIN_KEY on a hosted server. The only secret in the project: Wayezy’s version of a .env file.',w:'Admin writes are refused.',e:'Never commit. It is in .gitignore.',u:['server.js']},
+
+ 'floor-plans/':{t:'ws',kb:0,p:'floor-plans/ + data/align_to_pdfs.py',l:'ws',d:'The three floor-plan PDFs and the script that turns the traced coordinates into data.js. The source of the whole map.',w:'You cannot rebuild the map after a plan change.',e:'Run after a plan change, then the tests and the rail/escalator exports.',u:['data.js']},
+ 'blender/':{t:'ws',kb:0,p:'blender/ (30 scripts)',l:'ws',d:'The 3D model, the baked trees, water, materials and weather sprites for the web map, the kiosk’s attract film, and the launch, tour and use-case films.',w:'The live app is unaffected; you just cannot remake art or films.',e:'Blender 5.2 LTS, run headless.',u:['decor.js','water.js','shade.js']},
+ 'tests/':{t:'ws',kb:0,p:'tests/ (15 files)',l:'ws',d:'engine, adsched, qr, weather, server and locate tests, the exports that keep the Blender film in step with the app, and two browser audits (ui_audit, ui_flows) to run before a release.',w:'Mistakes reach the kiosk instead of the terminal.',e:'npm test runs the main three.',u:['engine.js','adsched.js','qr.js','server.js']},
+ 'build scripts':{t:'ws',kb:0,p:'web/build_single_file.py, build_static_site.py',l:'ws',d:'Pack the app into one HTML file (web/dist/) and the static GitHub Pages site.',w:'No one-file or static copy.',e:'Run after a release.',u:['index.html']},
+ 'deploy':{t:'ws',kb:0,p:'start-live.cmd, render.yaml, DEPLOY.md',l:'ws',d:'Putting the demo online: a Cloudflare quick tunnel, or a permanent server on Render.',w:'Demo stays on one machine.',e:'Wayezy’s version of docker-compose.',u:['server.js']},
+ 'tools/':{t:'ws',kb:0,p:'tools/ (1.9 GB, not committed)',l:'ws',d:'Local helpers: cloudflared, Python packages, browser profiles for the audits, temp space. Nearly all of the folder’s size.',w:'Re-download as needed.',e:'In .gitignore.',u:[]},
+ 'assets/':{t:'ws',kb:0,p:'assets/ (24 MB)',l:'ws',d:'The 3D kit packaged for reuse elsewhere: one GLB per tree, palm, lamp and gate, the editable .blend, textures.',w:'Nothing in the app.',e:'Made by blender/package_assets.py.',u:[]}
+};
+const LAYERS=[
+ {id:'ui',n:'Screens & features',s:'What visitors, store staff and the mall team see and tap.'},
+ {id:'map',n:'The map',s:'3D map, its 2D fallback, and the art baked in Blender.'},
+ {id:'brain',n:'The brain',s:'Pure logic with no screen code. Tested in Node.'},
+ {id:'data',n:'Data in the page',s:'The mall’s shape, brands, and the live-data link.'},
+ {id:'start',n:'Start-up & safety',s:'Shell, styles, first and last scripts.'},
+ {id:'server',n:'Server',s:'One copy of the data, pushed to every screen.'},
+ {id:'ws',n:'Workshop',s:'Runs on the build machine. Never sent to visitors.',ws:true}
+];
+const SCREENS=[
+ {id:'kiosk',n:'Kiosk',q:'?view=kiosk',d:'The mall’s touch screen: search, routes, QR hand-off, idle ads.'},
+ {id:'app',n:'Phone app',q:'?view=app',d:'Same map in the visitor’s pocket, plus members and Find my car.'},
+ {id:'admin',n:'Admin hub',q:'?view=admin',d:'Mall team and store managers change offers, ads and settings.'}
+];
+const FLOWS=[
+ {n:'Visitor finds a store',steps:[
+  ['kiosk','A visitor types “bella” on the kiosk keyboard.'],
+  ['ui.js','ui.js passes the text to the search.'],
+  ['engine.js','engine.js finds Bellagio despite the typo and plans the route with Dijkstra, timed in seconds.'],
+  ['data.js','The route runs over the walkways, lifts and escalators traced in data.js.'],
+  ['datastore.js','The store card shows today’s live wait time and offers from datastore.js.'],
+  ['i18n.js','Directions are written in English or Hindi.'],
+  ['mapview.js','ui.js asks mapview.js to drawRoute.'],
+  ['map3d.js','map3d.js draws the red ribbon across the floors (map2d.js if there is no WebGL).'],
+  ['qr.js','qr.js puts a code on the card so the route continues on a phone.'],
+  ['routemode.js','“Take me here” starts the guided walk.'],
+  ['voice.js','voice.js speaks each step; the walker waits at corners for the sentence to end.']]},
+ {n:'Admin changes an offer',steps:[
+  ['admin','A store manager edits an offer in the admin hub.'],
+  ['admin.js','admin.js saves the store document.'],
+  ['datastore.js','datastore.js sends PUT /api/db/stores/bellagio with the admin key.'],
+  ['admin-password.txt','server.js checks the key against admin-password.txt.'],
+  ['server.js','server.js accepts the write…'],
+  ['live-db.json','…saves it to live-db.json…'],
+  ['server.js','…and pushes it down /api/stream to every open screen.'],
+  ['datastore.js','Each kiosk’s and phone’s datastore.js receives the change.'],
+  ['ui.js','ui.js redraws the card. Every screen shows the new offer within a second.'],
+  ['kiosk','The kiosk updates without a reload.'],
+  ['app','So does every phone.']]},
+ {n:'Kiosk goes idle',steps:[
+  ['kiosk','Nobody touches the kiosk for 15 seconds.'],
+  ['ui.js','ui.js switches to the idle screen and back to the default language.'],
+  ['adsched.js','adsched.js works out which paid slots are open on this kiosk right now.'],
+  ['adplayer.js','adplayer.js plays them full screen, each for its seconds, then the attract film.'],
+  ['datastore.js','Play counts go back through datastore.js once a minute.'],
+  ['server.js','server.js stores them, so the admin hub can show each store its airtime.'],
+  ['adadmin.js','The mall team sees the plays in Ads & slots.']]},
+ {n:'Kiosk to phone',steps:[
+  ['kiosk','The visitor scans the code on the kiosk’s route card.'],
+  ['qr.js','The code holds ?view=app&at=<this kiosk>&to=bellagio.'],
+  ['app','The phone opens the same page in app view.'],
+  ['boot.js','boot.js starts everything; sw.js keeps an offline copy.'],
+  ['engine.js','engine.js routes from the kiosk’s spot to the store.'],
+  ['mapview.js','mapview.js picks the 3D map or the 2D fallback.'],
+  ['map3d.js','The visitor walks with the route on their phone.'],
+  ['member.js','If they sign in, member.js adds members-only offers and Find my car.']]},
+ {n:'Page starts up',steps:[
+  ['index.html','The browser loads index.html.'],
+  ['errors.js','errors.js loads first so it can catch anything that follows.'],
+  ['intro.js','intro.js plays the Wayezy logo intro over the page.'],
+  ['data.js','data.js and assets.js bring in the mall and the brands.'],
+  ['engine.js','engine.js builds the walk graph.'],
+  ['datastore.js','datastore.js asks /api/info: is server.js here? Yes → ServerDB, no → LocalDB.'],
+  ['server.js','server.js answers and starts streaming live data.'],
+  ['mapview.js','mapview.js starts the 3D map, or the 2D plan if WebGL fails.'],
+  ['map3d.js','map3d.js loads decor.js, water.js and shade.js art.'],
+  ['ui.js','ui.js draws the kiosk, phone or admin view from ?view=.'],
+  ['boot.js','boot.js finishes and registers sw.js.']]}
+];
+const MAPROWS=[
+ ['README.md','README.md, CLAUDE.md, CHANGES.md','README for people, CLAUDE.md for the AI assistant, CHANGES.md as the changelog.'],
+ ['requirements.txt','package.json','No dependencies. Node 18 and the browser are all it needs; three.js comes from a CDN.'],
+ ['.env','data/admin-password.txt / ADMIN_KEY','The only secret. In .gitignore.'],
+ ['.gitignore','.gitignore','Keeps live data, members, the password and tools/ out of git.'],
+ ['docker-compose.yml','render.yaml, start-live.cmd','Render for a permanent server; Cloudflare tunnel for a quick link.'],
+ ['src/','web/','The product. Everything a visitor’s browser loads.'],
+ ['agent/ (core loop)','engine.js','The decision-maker: search, routes, directions.'],
+ ['tools/','map3d.js, voice.js, qr.js, adsched.js','Capabilities the screens call on.'],
+ ['models/','data.js, decor.js','The mall’s geometry and the 3D models.'],
+ ['prompts/','i18n.js','The wording: every visitor-facing sentence in two languages.'],
+ ['utils/','motion.js, errors.js, assets.js','Helpers, logging, icons.'],
+ ['api/','server.js','The API: /api/db, /api/stream, /api/member.'],
+ ['tests/','tests/','Same idea; 15 files.'],
+ ['data/','data/','Mall coordinates, live data, members, brand art.'],
+ ['logs/','errors.js log','Kept in the browser and shown in Admin → Settings, not a folder.'],
+ ['main.py','server.js + boot.js','server.js starts the server; boot.js starts the page.']
+];
+
+const $=s=>document.querySelector(s);
+const css=v=>`var(${v})`;
+const chipEls={},scrEls={};
+let off=new Set(),sel='engine.js',flow=0,step=-1,timer=null;
+const maxLog=Math.log(1143);
+
+// legend
+for(const[k,t]of Object.entries(TIERS)){
+  const b=document.createElement('button');b.type='button';b.className='tier';b.style.setProperty('--c',css(t.c));b.setAttribute('aria-pressed','true');
+  b.innerHTML=`<i></i>${t.name} <small>${t.hint}</small>`;
+  b.onclick=()=>{off.has(k)?off.delete(k):off.add(k);b.setAttribute('aria-pressed',String(!off.has(k)));paint();};
+  $('#legend').append(b);
+}
+// screens + layers
+const stack=$('#stack');
+const sw=document.createElement('div');sw.className='screens';
+for(const s of SCREENS){const d=document.createElement('div');d.className='scr';d.innerHTML=`<b>${s.n}</b><span>${s.q}</span><p>${s.d}</p>`;scrEls[s.id]=d;sw.append(d);}
+stack.append(sw);
+const ar=document.createElement('div');ar.className='arrow';ar.textContent='all three are the same page';stack.append(ar);
+for(const L of LAYERS){
+  const row=document.createElement('section');row.className='layer'+(L.ws?' ws':'');
+  row.innerHTML=`<div class="lname"><h3>${L.n}</h3><p>${L.s}</p></div><div class="chips"></div>`;
+  const box=row.querySelector('.chips');
+  for(const[name,m]of Object.entries(M)){if(m.l!==L.id)continue;
+    const b=document.createElement('button');b.type='button';b.className='chip'+(m.t==='dor'?' dor':'');b.style.setProperty('--c',css(TIERS[m.t].c));
+    const w=m.kb?Math.max(4,Math.log(m.kb+1)/maxLog*100):0;
+    b.innerHTML=`<span class="badge"></span><span class="n">${name}</span>`+(m.kb?`<span class="bar"><span style="width:${w}%"></span></span><span class="kb">${m.kb>=1000?(m.kb/1024).toFixed(1)+' MB':m.kb+' KB'}</span>`:`<span class="kb">${m.l==='ws'?'folder':'data file'}</span>`);
+    b.onclick=()=>{sel=name;stopPlay();paint();if(matchMedia('(max-width:960px)').matches)$('#detail').scrollIntoView({behavior:'smooth',block:'start'});};
+    chipEls[name]=b;box.append(b);}
+  if(L.id==='data'){/* nothing */}
+  stack.append(row);
+}
+// flows
+FLOWS.forEach((f,i)=>{const b=document.createElement('button');b.type='button';b.className='flowbtn';b.textContent=f.n;b.onclick=()=>{flow=i;step=0;stopPlay();paint();};$('#flowbtns').append(b);});
+$('#play').onclick=()=>{if(timer){stopPlay();return;}const F=FLOWS[flow];if(step>=F.steps.length-1)step=-1;tick();timer=setInterval(tick,matchMedia('(prefers-reduced-motion: reduce)').matches?2600:1700);$('#play').textContent='Pause';};
+$('#next').onclick=()=>{stopPlay();step=Math.min(FLOWS[flow].steps.length-1,step+1);paint();};
+$('#prev').onclick=()=>{stopPlay();step=Math.max(0,step-1);paint();};
+function tick(){const F=FLOWS[flow];if(step>=F.steps.length-1){stopPlay();return;}step++;paint();}
+function stopPlay(){if(timer)clearInterval(timer);timer=null;$('#play').textContent='Play';}
+
+function paint(){
+  const F=FLOWS[flow];
+  document.querySelectorAll('.flowbtn').forEach((b,i)=>b.setAttribute('aria-pressed',String(i===flow)));
+  // which nodes are in the flow, with their first step number
+  const order={};F.steps.forEach(([id],i)=>{(order[id]=order[id]||[]).push(i+1);});
+  const cur=step>=0?F.steps[step][0]:null;
+  for(const[name,el]of Object.entries(chipEls)){
+    const m=M[name];const inF=name in order;
+    el.classList.toggle('inflow',inF);
+    el.querySelector('.badge').textContent=inF?order[name].join('·'):'';
+    el.classList.toggle('lit',name===cur);
+    el.classList.toggle('past',inF&&order[name].some(n=>n-1<step)&&name!==cur);
+    el.classList.toggle('dim',off.has(m.t)||(step>=0&&!inF));
+    el.classList.toggle('sel',name===sel);
+  }
+  for(const[id,el]of Object.entries(scrEls))el.classList.toggle('lit',id===cur);
+  $('#steps').innerHTML=F.steps.map(([id],i)=>`<li data-i="${i}" class="${i===step?'on':i<step?'done':''}">${i+1}. ${id}</li>`).join('');
+  $('#steps').querySelectorAll('li').forEach(li=>li.onclick=()=>{stopPlay();step=+li.dataset.i;paint();});
+  $('#stepnow').innerHTML=step>=0?`<b>${step+1}/${F.steps.length}</b>${F.steps[step][1]}`:`<b>${F.steps.length} steps</b>Press Play, or use ‹ › to step through.`;
+  if(cur&&M[cur])sel=cur, markSel();
+  detail();
+}
+function markSel(){for(const[n,el]of Object.entries(chipEls))el.classList.toggle('sel',n===sel);}
+function detail(){
+  const m=M[sel],t=TIERS[m.t];const d=$('#detail');d.style.setProperty('--c',css(t.c));
+  const users=Object.entries(M).filter(([n,x])=>n!==sel&&x.u.includes(sel)).map(([n])=>n);
+  const rel=[...new Set([...m.u,...users])].filter(n=>M[n]);
+  d.innerHTML=`<span class="dtier"><i></i>${t.name} · ${t.hint}</span><h2>${sel}</h2><div class="path">${m.p}</div><p>${m.d}</p>
+  <dl class="kv"><dt>Importance</dt><dd><div class="meter">${[1,2,3,4,5].map(i=>`<i class="${i<=t.score?'on':''}"></i>`).join('')}</div></dd>
+  <dt>Without it</dt><dd>${m.w}</dd><dt>Editing</dt><dd>${m.e}</dd>${m.kb?`<dt>Size</dt><dd class="mono">${m.kb>=1000?(m.kb/1024).toFixed(2)+' MB':m.kb+' KB'}</dd>`:''}</dl>
+  ${rel.length?`<div><div class="dtier" style="--c:var(--mute);margin-bottom:6px">Works with</div><div class="links">${rel.map(n=>`<button type="button" data-n="${n}">${n}</button>`).join('')}</div></div>`:''}`;
+  d.querySelectorAll('.links button').forEach(b=>b.onclick=()=>{sel=b.dataset.n;stopPlay();markSel();detail();});
+}
+// weight bars
+const W=[['Baked art (decor, water, shade)',2011,'--t-gen'],['3D map (map3d.js)',150,'--t-core'],['Screens (ui, admin, adadmin, member…)',203,'--t-imp'],['Brain (engine, i18n, adsched, qr)',97,'--t-core'],['Data & icons (data, assets, datastore)',76,'--t-imp'],['Everything else',82,'--t-pol']];
+const wmax=2011;$('#weight').innerHTML=W.map(([n,v,c])=>`<div class="wrow" style="--c:var(${c})"><span>${n}</span><span class="track"><span style="width:${Math.max(1.5,v/wmax*100)}%"></span></span><span class="v">${v>=1000?(v/1024).toFixed(1)+' MB':v+' KB'}</span></div>`).join('');
+// ranks
+const R=[
+ ['--t-core','engine.js + data.js','The mall and the routing over it. Everything else is a way of showing their answer.'],
+ ['--t-core','datastore.js + server.js','What turns separate screens into one system: an offer saved once appears everywhere.'],
+ ['--t-core','ui.js, mapview.js, map3d.js','The kiosk and phone people actually use.'],
+ ['--t-imp','Ads (adsched, adplayer, adadmin)','Where the mall earns money from the kiosks.'],
+ ['--t-imp','routemode, voice, qr, i18n, member','The features that make it feel finished: guided walk, speech, phone hand-off, Hindi, members.'],
+ ['--t-gen','decor, water, shade','Three-quarters of the download, zero logic. Remake them in Blender, never edit.'],
+ ['--t-dor','locate, beacons, livepos','Live-position feature waiting for beacons. Safe to ignore today.'],
+ ['--t-ws','blender/, tools/, assets/','Workshop only. The app runs fine without any of it.']];
+$('#ranks').innerHTML=R.map(([c,a,b])=>`<li style="--c:var(${c})"><i></i><div><b>${a}</b><br><span>${b}</span></div></li>`).join('');
+$('#maprows').innerHTML=MAPROWS.map(([a,b,c])=>`<tr><td class="mono">${a}</td><td class="mono">${b}</td><td>${c}</td></tr>`).join('');
+
+step=0;paint();
+</script>
+
+</body>
+</html>
